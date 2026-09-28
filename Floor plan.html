@@ -1,115 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart-Search Floor Manager</title>
-    <style>
-        :root {
-            --primary: #1e40af;
-            --primary-light: #3b82f6;
-            --bg-color: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --success: #15803d;
-            --success-bg: #dcfce7;
-            --danger: #b91c1c;
-            --danger-bg: #fee2e2;
-            --border: #cbd5e1;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart-Search Floor Manager — 3D Map & Squad Call</title>
+<style>
+    :root {
+        --primary: #1e40af;
+        --primary-light: #3b82f6;
+        --bg-color: #f1f5f9;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --success: #15803d;
+        --success-bg: #dcfce7;
+        --danger: #b91c1c;
+        --danger-bg: #fee2e2;
+        --squad: #25D366;
+        --claimed: #6366f1;
+        --border: #cbd5e1;
+    }
 
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; line-height: 1.5; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; line-height: 1.5; }
 
-        .app-container { max-width: 1100px; margin: 0 auto; }
+    .app-container { max-width: 1100px; margin: 0 auto; }
 
-        /* Header & Smart Search */
-        header { text-align: center; margin-bottom: 2rem; }
-        header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem; }
-        header p { color: var(--text-muted); font-size: 0.95rem; }
+    /* ---------- Header ---------- */
+    header { text-align: center; margin-bottom: 1.5rem; }
+    header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 0.4rem; }
+    header p { color: var(--text-muted); font-size: 0.95rem; }
 
-        .search-box-container {
-            background: var(--card-bg); padding: 1.25rem; border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-            margin-bottom: 1.5rem; border: 1px solid var(--border);
-        }
+    /* ---------- Search ---------- */
+    .search-box-container {
+        background: var(--card-bg); padding: 1.25rem; border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+        margin-bottom: 1rem; border: 1px solid var(--border);
+    }
+    .ai-input-wrapper { position: relative; }
+    .ai-input {
+        width: 100%; padding: 0.9rem 1rem 0.9rem 2.8rem; font-size: 1rem;
+        border: 2px solid var(--border); border-radius: 8px; outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .ai-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 4px rgba(59,130,246,.13); }
+    .search-icon { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--text-muted); }
 
-        .ai-input-wrapper { position: relative; }
-        .ai-input {
-            width: 100%; padding: 0.9rem 1rem 0.9rem 2.8rem; font-size: 1rem;
-            border: 2px solid var(--border); border-radius: 8px; outline: none;
-            transition: border-color 0.2s;
-        }
-        .ai-input:focus { border-color: var(--primary-light); }
-        .search-icon { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--text-muted); }
+    .search-hints { margin-top: 0.6rem; font-size: 0.82rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .hint-tag { background: #e2e8f0; padding: 0.15rem 0.55rem; border-radius: 4px; cursor: pointer; transition: background .15s; }
+    .hint-tag:hover { background: #cbd5e1; }
 
-        .search-hints { margin-top: 0.5rem; font-size: 0.82rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .hint-tag { background: #e2e8f0; padding: 0.1rem 0.5rem; border-radius: 4px; cursor: pointer; }
-        .hint-tag:hover { background: #cbd5e1; }
+    .ai-banner {
+        background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+        padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none;
+    }
 
-        /* Controls Panel */
-        .controls-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
-            background: var(--card-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem;
-        }
-        .control-group { display: flex; flex-direction: column; gap: 0.3rem; }
-        .control-group label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
-        .control-group select { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.95rem; }
+    /* ---------- Controls ---------- */
+    .controls-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem;
+        background: var(--card-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .control-group label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+    .control-group select { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.95rem; background: #fff; cursor: pointer; }
+    .control-group select:focus { outline: 2px solid var(--primary-light); outline-offset: 1px; }
 
-        /* Floor Grid Layout */
-        .floor-block { margin-bottom: 2rem; }
-        .floor-header {
-            font-size: 1.2rem; font-weight: 700; color: var(--primary);
-            padding-bottom: 0.4rem; border-bottom: 2px solid var(--primary-light); margin-bottom: 1rem;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    /* ============================================================
+       3D BUILDING MAP
+       ============================================================ */
+    .map-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,.05);
+    }
 
-        /* Room Cards */
-        .room-card {
-            background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
-            padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 0.6rem;
-            position: relative; overflow: hidden;
-        }
-        .room-card.is-empty { border-left: 5px solid var(--success); }
-        .room-card.is-occupied { border-left: 5px solid var(--danger); }
+    .map-head {
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: .6rem; margin-bottom: .8rem;
+    }
+    .map-head h2 { font-size: 1.05rem; color: var(--primary); display: flex; align-items: center; gap: .45rem; }
+    .map-head .hint { font-size: .78rem; color: var(--text-muted); font-weight: 400; }
 
-        .card-top { display: flex; justify-content: space-between; align-items: center; }
-        .room-title { font-size: 1.15rem; font-weight: 700; }
-        .status-badge {
-            font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 12px; text-transform: uppercase;
-        }
-        .status-badge.empty { background: var(--success-bg); color: var(--success); }
-        .status-badge.occupied { background: var(--danger-bg); color: var(--danger); }
+    .scene {
+        perspective: 1800px;
+        perspective-origin: 50% 46%;
+        height: 460px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background:
+            radial-gradient(ellipse at 50% 68%, #e0e7ff 0%, #f8fafc 52%, #eef2f7 100%);
+        position: relative;
+    }
+    .scene::after {
+        content: "";
+        position: absolute; left: 50%; bottom: 34px;
+        width: 240px; height: 44px; transform: translateX(-50%);
+        background: radial-gradient(ellipse, rgba(30,64,175,.18), transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
 
-        .room-info { font-size: 0.88rem; color: var(--text-muted); }
-        .room-info strong { color: var(--text-main); }
-        .amenities { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
-        .chip { font-size: 0.72rem; background: #f1f5f9; border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 4px; }
+    .building {
+        position: relative;
+        width: 284px;
+        height: 84px;
+        transform-style: preserve-3d;
+        transform: rotateX(62deg) rotateZ(-42deg) translateZ(-144px);
+        transition: transform .5s ease;
+    }
 
-        /* NLP Result Banner */
-        .ai-banner {
-            background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
-            padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none;
-        }
-    </style>
+    .floor-slab {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        transform: translateZ(calc(var(--lvl) * 72px));
+    }
+
+    .slab-plate {
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: rgba(226, 232, 240, .5);
+        border: 1px solid rgba(148, 163, 184, .55);
+        box-shadow: 0 14px 22px -14px rgba(15,23,42,.4);
+    }
+
+    .floor-tag {
+        position: absolute;
+        left: -46px; top: 50%;
+        transform: translateY(-50%) rotateZ(42deg) rotateX(-62deg);
+        font-size: 11px; font-weight: 800; letter-spacing: .03em;
+        color: var(--primary);
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(15,23,42,.12);
+    }
+
+    /* --- Room tiles --- */
+    .room-tile {
+        position: absolute;
+        top: 12px;
+        left: calc(8px + var(--col) * 92px);
+        width: 84px;
+        height: 60px;
+        transform-style: preserve-3d;
+        cursor: pointer;
+        transition: transform .22s ease;
+    }
+    .room-tile:hover,
+    .room-tile.selected { transform: translateZ(26px); }
+
+    .tile-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        border: 1.5px solid transparent;
+        transition: background .25s, border-color .25s, box-shadow .25s, opacity .25s;
+    }
+    .room-tile.free   .tile-face { background: linear-gradient(150deg, #bbf7d0, #6ee7b7); border-color: #22c55e; }
+    .room-tile.occ    .tile-face { background: linear-gradient(150deg, #fecaca, #fca5a5); border-color: #ef4444; }
+    .room-tile.claimed .tile-face {
+        background: linear-gradient(150deg, #c7d2fe, #a5b4fc);
+        border-color: var(--claimed);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.35), 0 0 22px rgba(99,102,241,.55);
+    }
+    .room-tile.selected .tile-face {
+        box-shadow: 0 0 0 3px rgba(30,64,175,.55), 0 0 20px rgba(30,64,175,.45);
+    }
+    .room-tile.dim { opacity: .18; filter: grayscale(1); pointer-events: none; }
+
+    .tile-label {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        transform: rotateZ(42deg) rotateX(-62deg);
+        pointer-events: none;
+        text-align: center;
+        line-height: 1.1;
+        text-shadow: 0 1px 0 rgba(255,255,255,.55);
+    }
+    .tl-id   { font-size: 10.5px; font-weight: 800; color: #0b1220; white-space: nowrap; }
+    .tl-time { font-size: 8.5px;  font-weight: 700; color: #334155; white-space: nowrap; letter-spacing: .02em; }
+    .room-tile.claimed .tl-time { color: #3730a3; }
+
+    /* --- Legend --- */
+    .legend {
+        display: flex; flex-wrap: wrap; gap: 1rem;
+        justify-content: center; margin-top: .8rem; font-size: .78rem; color: var(--text-muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: .38rem; font-weight: 600; }
+    .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,.12); }
+    .dot.free { background: #6ee7b7; }
+    .dot.occ { background: #fca5a5; }
+    .dot.claimed { background: #a5b4fc; }
+
+    /* ============================================================
+       FLOOR GRID (list view)
+       ============================================================ */
+    .floor-block { margin-bottom: 2rem; }
+    .floor-header {
+        font-size: 1.1rem; font-weight: 700; color: var(--primary);
+        padding-bottom: .4rem; border-bottom: 2px solid var(--primary-light); margin-bottom: 1rem;
+        display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .floor-header .sub { font-size: .8rem; font-weight: 500; color: var(--text-muted); }
+    .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+
+    .room-card {
+        background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
+        padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+        display: flex; flex-direction: column; gap: .6rem;
+        position: relative; overflow: hidden;
+        cursor: pointer;
+        transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+    .room-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -12px rgba(15,23,42,.5); }
+    .room-card.is-empty { border-left: 5px solid var(--success); }
+    .room-card.is-occupied { border-left: 5px solid var(--danger); }
+    .room-card.is-claimed { border-left-color: var(--claimed); background: linear-gradient(180deg, #eef2ff, #fff); }
+    .room-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(30,64,175,.25); }
+
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+    .room-title { font-size: 1.1rem; font-weight: 700; }
+    .status-badge { font-size: .68rem; font-weight: 800; padding: .2rem .6rem; border-radius: 12px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+    .status-badge.empty { background: var(--success-bg); color: var(--success); }
+    .status-badge.occupied { background: var(--danger-bg); color: var(--danger); }
+    .status-badge.claimed { background: #e0e7ff; color: #3730a3; }
+
+    .room-info { font-size: .86rem; color: var(--text-muted); }
+    .room-info strong { color: var(--text-main); }
+    .amenities { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .1rem; }
+    .chip { font-size: .7rem; background: #f1f5f9; border: 1px solid var(--border); padding: .1rem .45rem; border-radius: 4px; color: var(--text-muted); font-weight: 600; }
+
+    .card-countdown {
+        display: flex; align-items: center; justify-content: space-between;
+        background: #f8fafc; border: 1px dashed var(--border); border-radius: 7px;
+        padding: .4rem .6rem; margin-top: .1rem;
+    }
+    .cc-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 700; }
+    .cc-value { font-size: .92rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .empty-state h3 { color: var(--text-main); margin-bottom: .3rem; }
+
+    /* ============================================================
+       DRAWER
+       ============================================================ */
+    .drawer-backdrop {
+        position: fixed; inset: 0; background: rgba(15,23,42,.4);
+        opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 99;
+        backdrop-filter: blur(2px);
+    }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .drawer {
+        position: fixed; top: 0; right: 0; height: 100%;
+        width: min(400px, 92vw);
+        background: #fff;
+        box-shadow: -18px 0 50px rgba(15,23,42,.22);
+        transform: translateX(105%);
+        transition: transform .32s cubic-bezier(.4,0,.2,1);
+        z-index: 100;
+        overflow-y: auto;
+        padding: 1.5rem 1.35rem 2.5rem;
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-close {
+        position: absolute; top: 1rem; right: 1rem;
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid var(--border); background: #fff;
+        font-size: 1rem; cursor: pointer; color: var(--text-muted);
+        display: grid; place-items: center; transition: all .15s;
+    }
+    .drawer-close:hover { background: #f1f5f9; color: var(--text-main); }
+
+    .drawer-room { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+    .drawer-sub { font-size: .85rem; color: var(--text-muted); margin-top: .1rem; }
+
+    .status-pill {
+        display: inline-flex; align-items: center; gap: .35rem;
+        margin-top: .9rem; padding: .3rem .8rem; border-radius: 999px;
+        font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .status-pill.empty { background: var(--success-bg); color: var(--success); }
+    .status-pill.occupied { background: var(--danger-bg); color: var(--danger); }
+    .status-pill.claimed { background: #e0e7ff; color: #3730a3; }
+
+    .countdown-box {
+        background: linear-gradient(140deg, #1e3a8a, #1e40af 55%, #2563eb);
+        color: #fff; border-radius: 14px; padding: 1.1rem 1rem; text-align: center;
+        margin: 1.1rem 0; box-shadow: 0 16px 30px -18px rgba(30,64,175,.9);
+    }
+    .cd-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; opacity: .82; font-weight: 700; }
+    .cd-value {
+        font-size: 2.1rem; font-weight: 800; letter-spacing: -.02em;
+        font-variant-numeric: tabular-nums; margin: .2rem 0 .1rem;
+        text-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .cd-sub { font-size: .84rem; opacity: .92; }
+    .cd-sub strong { font-weight: 800; }
+
+    .period-strip {
+        display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 1rem 0;
+    }
+    .ps {
+        text-align: center; font-size: .68rem; font-weight: 800; padding: .35rem 0;
+        border-radius: 5px; border: 1px solid var(--border); color: var(--text-muted); background: #f8fafc;
+    }
+    .ps.busy { background: #fee2e2; border-color: #fca5a5; color: var(--danger); }
+    .ps.free { background: #dcfce7; border-color: #86efac; color: var(--success); }
+    .ps.now { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+    .strip-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+
+    .drawer-actions { display: flex; flex-direction: column; gap: .6rem; margin-top: 1.1rem; }
+
+    .btn {
+        display: flex; align-items: center; justify-content: center; gap: .5rem;
+        width: 100%; padding: .8rem 1rem; border-radius: 10px; border: none;
+        font-size: .93rem; font-weight: 700; cursor: pointer;
+        transition: transform .12s, background .15s, box-shadow .15s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn.primary { background: var(--primary); color: #fff; }
+    .btn.primary:hover { background: #1d4ed8; }
+    .btn.squad { background: var(--squad); color: #fff; box-shadow: 0 10px 22px -12px rgba(37,211,102,.9); }
+    .btn.squad:hover { background: #1eb455; }
+    .btn.ghost { background: #fff; border: 1px solid var(--border); color: var(--text-main); }
+    .btn.ghost:hover { background: #f1f5f9; }
+    .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+    .note-box {
+        font-size: .82rem; color: var(--text-muted); background: #f8fafc;
+        border: 1px solid var(--border); border-radius: 9px; padding: .7rem .85rem; margin-top: .4rem;
+    }
+
+    /* ---------- Toast ---------- */
+    .toast {
+        position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+        background: #0f172a; color: #fff; padding: .7rem 1.15rem; border-radius: 999px;
+        font-size: .85rem; font-weight: 600; z-index: 200;
+        opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+        box-shadow: 0 12px 30px -10px rgba(0,0,0,.6);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 640px) {
+        body { padding: 1rem .75rem; }
+        header h1 { font-size: 1.5rem; }
+        .scene { height: 380px; }
+        .building { transform: rotateX(62deg) rotateZ(-42deg) translateZ(-144px) scale(.78); }
+    }
+</style>
 </head>
 <body>
 
 <div class="app-container">
     <header>
         <h1>🏢 Smart-Search Floor Manager</h1>
-        <p>SRM FET Timetable Engine & Real-Time Classroom Availability Finder</p>
+        <p>SRM FET Timetable Engine · 3D Availability Map · Squad Invites</p>
     </header>
 
+    <!-- ---------------- SEARCH ---------------- -->
     <div class="search-box-container">
         <div class="ai-input-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" id="aiQuery" class="ai-input" placeholder="e.g. 'I need an AC room on 2nd floor on Monday Period 3' or 'empty rooms on 5th floor'" onkeyup="handleSearch(event)">
+            <input type="text" id="aiQuery" class="ai-input"
+                   placeholder="e.g. 'I need an AC room on 2nd floor on Monday Period 3' or 'empty rooms on 5th floor'"
+                   oninput="processAI(this.value)">
         </div>
         <div class="search-hints">
-            <span>Try searching:</span>
+            <span>Try:</span>
             <span class="hint-tag" onclick="applyHint('Empty rooms on 2nd floor')">"Empty rooms on 2nd floor"</span>
             <span class="hint-tag" onclick="applyHint('Need AC room on 5th floor')">"Need AC room on 5th floor"</span>
             <span class="hint-tag" onclick="applyHint('Available rooms on Friday Period 6')">"Available rooms on Friday Period 6"</span>
@@ -119,6 +395,7 @@
 
     <div id="aiBanner" class="ai-banner"></div>
 
+    <!-- ---------------- CONTROLS ---------------- -->
     <div class="controls-grid">
         <div class="control-group">
             <label for="daySelect">Select Day</label>
@@ -133,26 +410,27 @@
         <div class="control-group">
             <label for="periodSelect">Select Period / Time</label>
             <select id="periodSelect" onchange="manualFilterChange()">
-                <option value="1">Period 1 (09:00 - 09:50 AM)</option>
-                <option value="2">Period 2 (09:50 - 10:40 AM)</option>
-                <option value="3">Period 3 (10:50 - 11:40 AM)</option>
-                <option value="4">Period 4 (11:40 - 12:30 PM)</option>
-                <option value="5">Period 5 (12:30 - 01:20 PM)</option>
-                <option value="6" selected>Period 6 (01:20 - 02:10 PM)</option>
-                <option value="7">Period 7 (02:10 - 03:00 PM)</option>
-                <option value="8">Period 8 (03:10 - 04:00 PM)</option>
-                <option value="9">Period 9 (04:00 - 04:50 PM)</option>
+                <option value="1">Period 1 (09:00 – 09:50 AM)</option>
+                <option value="2">Period 2 (09:50 – 10:40 AM)</option>
+                <option value="3">Period 3 (10:50 – 11:40 AM)</option>
+                <option value="4">Period 4 (11:40 – 12:30 PM)</option>
+                <option value="5">Period 5 (12:30 – 01:20 PM)</option>
+                <option value="6" selected>Period 6 (01:20 – 02:10 PM)</option>
+                <option value="7">Period 7 (02:10 – 03:00 PM)</option>
+                <option value="8">Period 8 (03:10 – 04:00 PM)</option>
+                <option value="9">Period 9 (04:00 – 04:50 PM)</option>
             </select>
         </div>
         <div class="control-group">
             <label for="floorSelect">Filter Floor</label>
             <select id="floorSelect" onchange="manualFilterChange()">
                 <option value="all">All Floors</option>
+                <option value="1">1st Floor</option>
                 <option value="2">2nd Floor</option>
                 <option value="4">4th Floor</option>
                 <option value="5">5th Floor</option>
                 <option value="6">6th Floor</option>
-                <option value="7">7th Floor</option>
+                
             </select>
         </div>
         <div class="control-group">
@@ -165,29 +443,97 @@
         </div>
     </div>
 
+    <!-- ---------------- 3D MAP ---------------- -->
+    <section class="map-section">
+        <div class="map-head">
+            <h2>🗺️ Live Building Map <span class="hint">— click any room for its countdown</span></h2>
+            <span class="hint" id="mapClock"></span>
+        </div>
+
+        <div class="scene">
+            <div class="building" id="building"></div>
+        </div>
+
+        <div class="legend">
+            <span><i class="dot free"></i> Free</span>
+            <span><i class="dot occ"></i> In class</span>
+            <span><i class="dot claimed"></i> Claimed by you</span>
+            <span>🖱️ Hover to lift · Click to inspect</span>
+        </div>
+    </section>
+
+    <!-- ---------------- FLOOR GRID ---------------- -->
     <main id="floorGridContainer"></main>
 </div>
 
+<!-- ---------------- DRAWER ---------------- -->
+<div class="drawer-backdrop" id="backdrop" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="Close">✕</button>
+    <div id="drawerContent"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
 <script>
-/**
- * Master Schedule Database extracted directly from the 10 Provided PDF Timetables
- */
+/* ==================================================================
+   TIME MODEL
+   ================================================================== */
+const PERIOD_TIMES = {
+    1: { start: '09:00', end: '09:50' },
+    2: { start: '09:50', end: '10:40' },
+    3: { start: '10:50', end: '11:40' },
+    4: { start: '11:40', end: '12:30' },
+    5: { start: '12:30', end: '13:20' },
+    6: { start: '13:20', end: '14:10' },
+    7: { start: '14:10', end: '15:00' },
+    8: { start: '15:10', end: '16:00' },
+    9: { start: '16:00', end: '16:50' }
+};
+const DAY_IDX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const DAY_NAME = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+
+function to12h(hhmm) {
+    let [h, m] = hhmm.split(':').map(Number);
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')} ${ap}`;
+}
+function toShort(hhmm) {
+    let [h, m] = hhmm.split(':').map(Number);
+    const ap = h >= 12 ? 'p' : 'a';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')}${ap}`;
+}
+function formatDuration(ms) {
+    if (ms < 0) ms = 0;
+    const total = Math.floor(ms / 1000);
+    const d = Math.floor(total / 86400);
+    const h = Math.floor((total % 86400) / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = n => String(n).padStart(2, '0');
+    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+/** Next future Date for a given weekday code + "HH:MM" */
+function nextOccurrence(dayCode, hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    const diff = (DAY_IDX[dayCode] - now.getDay() + 7) % 7;
+    if (diff === 0 && target.getTime() <= now.getTime()) target.setDate(target.getDate() + 7);
+    else target.setDate(target.getDate() + diff);
+    return target;
+}
+
+/* ==================================================================
+   ROOM DATABASE
+   ================================================================== */
 const roomMaster = [
     {
-        id: "IST 211",
-        floor: 2,
-        capacity: 60,
-        ac: true,
-        homeSection: "III BME",
-        // Schedule maps: key = Day, values = array of occupied periods (1-indexed) in home room IST 211
-        // Note: When students attend labs in external venues (MPMC LAB, G-625, BIO DSP LAB), IST 211 is physically EMPTY.
-        schedule: {
-            Mon: [6, 7, 8, 9], // P1,P2 in G-625; P3,P4 in MPMC LAB-107
-            Tue: [6, 7, 8, 9], // P1,P2 in BIO DSP LAB-108; P3,P4 in G-625
-            Wed: [6, 7, 8, 9],
-            Thu: [6, 7, 8, 9], // P3,P4 in I-108
-            Fri: [6, 7, 8, 9]  // P1,P2 in I-108
-        },
+        id: "IST 211", floor: 2, capacity: 60, ac: true, homeSection: "III BME",
+        schedule: { Mon: [6,7,8,9], Tue: [6,7,8,9], Wed: [6,7,8,9], Thu: [6,7,8,9], Fri: [6,7,8,9] },
         currentSubject: {
             Mon: {6:"Modern Wireless Comm (E)", 7:"Microcontrollers (B)", 8:"Biometrics (F)", 9:"Indian Art Form (H)"},
             Tue: {6:"Biomedical Signal Proc (C)", 7:"Biometrics (D)", 8:"Probability & Stats (A)", 9:"Microcontrollers (B)"},
@@ -197,18 +543,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 225",
-        floor: 2,
-        capacity: 65,
-        ac: true,
-        homeSection: "IV ECE A",
-        schedule: {
-            Mon: [1, 2, 3, 4],
-            Tue: [1, 3, 4], // P2 is in IST 108 Lab
-            Wed: [1, 3, 4], // P2 is IST 108
-            Thu: [1, 2, 3, 4],
-            Fri: [1, 2, 3, 4]
-        },
+        id: "IST 225", floor: 2, capacity: 65, ac: true, homeSection: "IV ECE A",
+        schedule: { Mon: [1,2,3,4], Tue: [1,3,4], Wed: [1,3,4], Thu: [1,2,3,4], Fri: [1,2,3,4] },
         currentSubject: {
             Mon: {1:"Comp Comm (C)", 2:"Semiconductor Memory (D)", 3:"Psychology (A)", 4:"Semiconductor Memory (D)"},
             Tue: {1:"Comp Comm (C)", 3:"Wireless Comm (B)", 4:"Machine Learning (F)"},
@@ -218,18 +554,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 227",
-        floor: 2,
-        capacity: 65,
-        ac: true,
-        homeSection: "IV ECE B",
-        schedule: {
-            Mon: [1, 2, 3, 4],
-            Tue: [1, 2, 3, 4],
-            Wed: [1, 2, 3, 4],
-            Thu: [1, 2, 4], // P3 is in IST 108 Lab
-            Fri: [1, 2, 3]
-        },
+        id: "IST 227", floor: 2, capacity: 65, ac: true, homeSection: "IV ECE B",
+        schedule: { Mon: [1,2,3,4], Tue: [1,2,3,4], Wed: [1,2,3,4], Thu: [1,2,4], Fri: [1,2,3] },
         currentSubject: {
             Mon: {1:"Comp Comm (C)", 2:"Psychology (A)", 3:"Scripting Lang (E)", 4:"Machine Learning (F)"},
             Tue: {1:"Comp Comm (C)", 2:"Scripting Lang (E)", 3:"Machine Learning (F)", 4:"Wireless Comm (B)"},
@@ -239,18 +565,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 411",
-        floor: 4,
-        capacity: 60,
-        ac: false,
-        homeSection: "II ECE DS B",
-        schedule: {
-            Mon: [6, 7, 8, 9], // P3,P4 in LAB-309/107
-            Tue: [6, 7, 8, 9], // P1,P2 in LAB-309/107
-            Wed: [6, 7, 8, 9], // P1,P2 in G-401
-            Thu: [6, 7, 8, 9], // P1,P2 in G-401; P3,P4 in H-TB-106
-            Fri: [6, 7, 8, 9]  // P1,P2 in H-TB-106
-        },
+        id: "IST 411", floor: 4, capacity: 60, ac: false, homeSection: "II ECE DS B",
+        schedule: { Mon: [6,7,8,9], Tue: [6,7,8,9], Wed: [6,7,8,9], Thu: [6,7,8,9], Fri: [6,7,8,9] },
         currentSubject: {
             Mon: {6:"Digital Logic (D)", 7:"Solid State Dev (B)", 8:"Comp Org (C)", 9:"Social Engg (I)"},
             Tue: {6:"Comp Org (C)", 7:"Digital Logic (D)", 8:"E&M Theory (E)", 9:"Transforms (A)"},
@@ -260,18 +576,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 416",
-        floor: 4,
-        capacity: 60,
-        ac: false,
-        homeSection: "II ECE DS A",
-        schedule: {
-            Mon: [1, 2, 3], // P6,P7 in G-602; P8,P9 in LAB-309/107
-            Tue: [1, 2, 3, 4], // P6,P7 in G-602; P8,P9 in H-TB-106
-            Wed: [1, 2, 3, 4], // P6,P7 in H-TB-106
-            Thu: [1, 2, 3, 4], // P6,P7 in LAB-309/107
-            Fri: [1, 2, 3, 4]
-        },
+        id: "IST 416", floor: 4, capacity: 60, ac: false, homeSection: "II ECE DS A",
+        schedule: { Mon: [1,2,3], Tue: [1,2,3,4], Wed: [1,2,3,4], Thu: [1,2,3,4], Fri: [1,2,3,4] },
         currentSubject: {
             Mon: {1:"E&M Theory (E)", 2:"Transforms (A)", 3:"Social Engg (I)"},
             Tue: {1:"Comp Org (C)", 2:"Transforms (A)", 3:"E&M Theory (E)", 4:"Digital Logic (D)"},
@@ -281,18 +587,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 502",
-        floor: 5,
-        capacity: 60,
-        ac: true,
-        homeSection: "I ECE DS",
-        schedule: {
-            Mon: [5, 6, 7, 8],
-            Tue: [5, 6, 7, 8],
-            Wed: [2, 3, 5, 6, 7, 8],
-            Thu: [5, 8, 9],
-            Fri: [] // Classes conducted in German/Workshop
-        },
+        id: "IST 502", floor: 5, capacity: 60, ac: true, homeSection: "I ECE DS",
+        schedule: { Mon: [5,6,7,8], Tue: [5,6,7,8], Wed: [2,3,5,6,7,8], Thu: [5,8,9], Fri: [] },
         currentSubject: {
             Mon: {5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Chemistry (B)", 8:"Calculus (A)"},
             Tue: {5:"Biology (C)", 6:"Chemistry (B)", 7:"Calculus (A)", 8:"Programming (D)"},
@@ -301,17 +597,10 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 518",
-        floor: 5,
-        capacity: 70,
-        ac: true,
-        homeSection: "III ECE A (FN) / III ECE B (AN)",
+        id: "IST 518", floor: 5, capacity: 70, ac: true, homeSection: "III ECE A (FN) / III ECE B (AN)",
         schedule: {
-            Mon: [1, 2, 3, 4, 6, 7, 8, 9], // P6,P7 FN in G-625; AN occupies P6-P9
-            Tue: [1, 2, 3, 4, 6, 7, 8, 9],
-            Wed: [1, 2, 3, 4, 6, 7, 8, 9],
-            Thu: [1, 2, 3, 4, 6, 7, 8, 9],
-            Fri: [1, 2, 3, 4, 6, 7, 8, 9]
+            Mon: [1,2,3,4,6,7,8,9], Tue: [1,2,3,4,6,7,8,9], Wed: [1,2,3,4,6,7,8,9],
+            Thu: [1,2,3,4,6,7,8,9], Fri: [1,2,3,4,6,7,8,9]
         },
         currentSubject: {
             Mon: {1:"Discrete Math", 2:"Microprocessors", 3:"Microprocessors", 4:"Discrete Math", 6:"System & Net", 7:"Microprocessors", 8:"Discrete Math", 9:"Machine Learning"},
@@ -322,18 +611,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 519",
-        floor: 5,
-        capacity: 65,
-        ac: true,
-        homeSection: "III ECE DS",
-        schedule: {
-            Mon: [1, 2, 3, 4], // P5,P6 in LAB-108/107; P7 in G-625
-            Tue: [],           // All classes in LAB-309/107 or G-401
-            Wed: [],           // All classes in G-625 or CDC
-            Thu: [1, 2, 3, 4],
-            Fri: [1, 2, 3, 4]  // P5 in G-625; P6,P7 in LAB-108/107
-        },
+        id: "IST 519", floor: 5, capacity: 65, ac: true, homeSection: "III ECE DS",
+        schedule: { Mon: [1,2,3,4], Tue: [], Wed: [], Thu: [1,2,3,4], Fri: [1,2,3,4] },
         currentSubject: {
             Mon: {1:"Database Design (E)", 2:"Microprocessor (B)", 3:"VLSI Design (C)", 4:"Discrete Math (A)"},
             Thu: {1:"Discrete Math (A)", 2:"Machine Learning (D)", 3:"Database Design (E)", 4:"Community Connect (F)"},
@@ -341,17 +620,10 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 602",
-        floor: 6,
-        capacity: 70,
-        ac: false,
-        homeSection: "II BME / I ECE A / I ECE B",
+        id: "IST 602", floor: 6, capacity: 70, ac: false, homeSection: "II BME / I ECE A / I ECE B",
         schedule: {
-            Mon: [1, 2, 3, 4, 5, 6, 7, 8],
-            Tue: [1, 2, 3, 4, 5, 6, 7, 8],
-            Wed: [1, 2, 3, 5, 6, 7, 8],
-            Thu: [1, 2, 3, 4, 7, 8],
-            Fri: [1, 2, 3, 4, 6, 8, 9]
+            Mon: [1,2,3,4,5,6,7,8], Tue: [1,2,3,4,5,6,7,8], Wed: [1,2,3,5,6,7,8],
+            Thu: [1,2,3,4,7,8], Fri: [1,2,3,4,6,8,9]
         },
         currentSubject: {
             Mon: {1:"Philosophy of Engg (E)", 2:"Philosophy of Engg (E)", 3:"Chemistry (B)", 4:"Calculus (A)", 5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Chemistry (B)", 8:"Calculus (A)"},
@@ -362,18 +634,8 @@ const roomMaster = [
         }
     },
     {
-        id: "IST 702",
-        floor: 7,
-        capacity: 60,
-        ac: false,
-        homeSection: "I Biotech B & BME",
-        schedule: {
-            Mon: [5, 6, 7, 8],
-            Tue: [6, 7, 8],
-            Wed: [5, 6, 7, 8],
-            Thu: [5, 6, 8],
-            Fri: [1, 2, 3, 4, 5]
-        },
+        id: "IST 101", floor: 1, capacity: 60, ac: false, homeSection: "I Biotech B & BME",
+        schedule: { Mon: [5,6,7,8], Tue: [6,7,8], Wed: [5,6,7,8], Thu: [5,6,8], Fri: [1,2,3,4,5] },
         currentSubject: {
             Mon: {5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Calculus (A)", 8:"Chemistry (B)"},
             Tue: {6:"Chemistry (B)", 7:"Calculus (A)", 8:"Programming (D)"},
@@ -384,105 +646,437 @@ const roomMaster = [
     }
 ];
 
-// Active State
-let state = {
-    day: "Mon",
+/* ==================================================================
+   STATE
+   ================================================================== */
+const state = {
+    day: 'Mon',
     period: 6,
-    floor: "all",
-    status: "all",
-    aiMessage: ""
+    floor: 'all',
+    status: 'all',
+    selectedRoom: null
 };
+const claimedRooms = new Set();
 
-// Primary Render Engine
-function render() {
+/* ==================================================================
+   CORE HELPERS
+   ================================================================== */
+const getRoom = id => roomMaster.find(r => r.id === id);
+
+function isOccupied(room, day, period) {
+    const sched = room.schedule[day];
+    return Array.isArray(sched) && sched.includes(period);
+}
+
+function matchesFilter(room) {
+    if (state.floor !== 'all' && room.floor !== parseInt(state.floor, 10)) return false;
+    const occ = isOccupied(room, state.day, state.period);
+    const st = occ ? 'occupied' : 'empty';
+    if (state.status !== 'all' && state.status !== st) return false;
+    return true;
+}
+
+/**
+ * Compute the timing picture for a room in the currently selected slot.
+ *  - occupied → deadline = end of the contiguous class block
+ *  - free     → deadline = start of the next class on that day
+ */
+function getRoomTiming(room) {
+    const day = state.day;
+    const p = state.period;
+    const sched = Array.isArray(room.schedule[day]) ? room.schedule[day] : [];
+    const occupied = sched.includes(p);
+
+    if (occupied) {
+        let end = p;
+        while (sched.includes(end + 1)) end++;
+        const endTime = PERIOD_TIMES[end].end;
+        return {
+            occupied: true,
+            untilPeriod: end,
+            untilTime: endTime,
+            deadline: nextOccurrence(day, endTime),
+            label: 'Room frees up in'
+        };
+    }
+
+    let next = null;
+    for (let i = p + 1; i <= 9; i++) {
+        if (sched.includes(i)) { next = i; break; }
+    }
+    if (next === null) {
+        return {
+            occupied: false,
+            freeAllDay: true,
+            untilTime: '16:50',
+            deadline: nextOccurrence(day, '16:50'),
+            label: 'No more classes today'
+        };
+    }
+    const startTime = PERIOD_TIMES[next].start;
+    return {
+        occupied: false,
+        untilPeriod: next,
+        untilTime: startTime,
+        deadline: nextOccurrence(day, startTime),
+        label: 'Next class starts in'
+    };
+}
+
+/* ==================================================================
+   RENDER — 3D MAP
+   ================================================================== */
+function renderMap() {
+    const byFloor = {};
+    roomMaster.forEach(r => (byFloor[r.floor] = byFloor[r.floor] || []).push(r));
+    const floors = Object.keys(byFloor).map(Number).sort((a, b) => a - b);
+
+    let html = '';
+    floors.forEach((floor, lvl) => {
+        const rooms = byFloor[floor];
+        const startCol = (3 - rooms.length) / 2;
+
+        let tiles = '';
+        rooms.forEach((room, i) => {
+            const col = startCol + i;
+            const occ = isOccupied(room, state.day, state.period);
+            const claimed = claimedRooms.has(room.id);
+            const dim = !matchesFilter(room);
+            const timing = getRoomTiming(room);
+
+            let timeText;
+            if (claimed) timeText = 'YOURS';
+            else if (occ) timeText = 'til ' + toShort(PERIOD_TIMES[timing.untilPeriod].end);
+            else timeText = timing.freeAllDay ? 'all day' : 'til ' + toShort(timing.untilTime);
+
+            const cls = [
+                'room-tile',
+                occ ? 'occ' : 'free',
+                claimed ? 'claimed' : '',
+                dim ? 'dim' : '',
+                state.selectedRoom === room.id ? 'selected' : ''
+            ].filter(Boolean).join(' ');
+
+            tiles += `
+                <div class="${cls}" data-id="${room.id}" style="--col:${col}" title="${room.id} · Floor ${room.floor}">
+                    <div class="tile-face"></div>
+                    <div class="tile-label">
+                        <span class="tl-id">${room.id}</span>
+                        <span class="tl-time">${timeText}</span>
+                    </div>
+                </div>`;
+        });
+
+        html += `
+            <div class="floor-slab" style="--lvl:${lvl}">
+                <div class="slab-plate"></div>
+                <div class="floor-tag">F${floor}</div>
+                ${tiles}
+            </div>`;
+    });
+
+    document.getElementById('building').innerHTML = html;
+}
+
+/* ==================================================================
+   RENDER — FLOOR GRID
+   ================================================================== */
+function renderGrid() {
     const container = document.getElementById('floorGridContainer');
     container.innerHTML = '';
 
-    // Filter Rooms
-    let filtered = roomMaster.filter(room => {
-        // Floor Filter
-        if (state.floor !== "all" && room.floor !== parseInt(state.floor)) return false;
-
-        // Dynamic Occupancy Status Calculation
-        const isOccupied = room.schedule[state.day] && room.schedule[state.day].includes(state.period);
-        const roomStatus = isOccupied ? "occupied" : "empty";
-
-        // Status Filter
-        if (state.status !== "all" && state.status !== roomStatus) return false;
-
-        return true;
-    });
+    const filtered = roomMaster.filter(matchesFilter);
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">
-            <h3>No rooms match your specific criteria.</h3>
-            <p>Try clearing your search query or selecting 'All Floors'.</p>
-        </div>`;
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No rooms match your criteria</h3>
+                <p>Try clearing your search query or selecting “All Floors”.</p>
+            </div>`;
         return;
     }
 
-    // Group Rooms by Floor
-    const floors = [...new Set(filtered.map(r => r.floor))].sort((a,b) => a - b);
+    const floors = [...new Set(filtered.map(r => r.floor))].sort((a, b) => a - b);
 
     floors.forEach(floor => {
-        const floorBlock = document.createElement('div');
-        floorBlock.className = 'floor-block';
-
         const floorRooms = filtered.filter(r => r.floor === floor);
-        const emptyCount = floorRooms.filter(r => !r.schedule[state.day].includes(state.period)).length;
+        const emptyCount = floorRooms.filter(r => !isOccupied(r, state.day, state.period)).length;
 
-        floorBlock.innerHTML = `
+        const block = document.createElement('div');
+        block.className = 'floor-block';
+        block.innerHTML = `
             <div class="floor-header">
                 <span>Floor ${floor}</span>
-                <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">
-                    ${emptyCount} of ${floorRooms.length} room(s) available now
-                </span>
+                <span class="sub">${emptyCount} of ${floorRooms.length} room(s) free @ P${state.period}</span>
             </div>
-            <div class="room-grid" id="floor-grid-${floor}"></div>
-        `;
+            <div class="room-grid"></div>`;
 
-        container.appendChild(floorBlock);
+        const grid = block.querySelector('.room-grid');
 
-        const grid = document.getElementById(`floor-grid-${floor}`);
         floorRooms.forEach(room => {
-            const isOccupied = room.schedule[state.day] && room.schedule[state.day].includes(state.period);
-            const statusClass = isOccupied ? 'is-occupied' : 'is-empty';
-            const badgeClass = isOccupied ? 'occupied' : 'empty';
-            const statusText = isOccupied ? 'Occupied' : 'Empty / Available';
+            const occ = isOccupied(room, state.day, state.period);
+            const claimed = claimedRooms.has(room.id);
+            const timing = getRoomTiming(room);
+            const subject = occ && room.currentSubject[state.day] && room.currentSubject[state.day][state.period]
+                ? room.currentSubject[state.day][state.period]
+                : 'No Scheduled Class';
 
-            const currentSubject = isOccupied && room.currentSubject[state.day] && room.currentSubject[state.day][state.period] 
-                ? room.currentSubject[state.day][state.period] 
-                : "No Scheduled Class";
+            const badgeClass = claimed ? 'claimed' : (occ ? 'occupied' : 'empty');
+            const badgeText = claimed ? 'Claimed' : (occ ? 'Occupied' : 'Free');
+            const cardClass = claimed ? 'is-claimed' : (occ ? 'is-occupied' : 'is-empty');
 
-            grid.innerHTML += `
-                <div class="room-card ${statusClass}">
-                    <div class="card-top">
-                        <span class="room-title">${room.id}</span>
-                        <span class="status-badge ${badgeClass}">${statusText}</span>
-                    </div>
-                    <div class="room-info">
-                        <div><strong>Home Class:</strong> ${room.homeSection}</div>
-                        <div><strong>Status @ Period ${state.period}:</strong> ${currentSubject}</div>
-                        <div><strong>Capacity:</strong> ~${room.capacity} seats</div>
-                    </div>
-                    <div class="amenities">
-                        <span class="chip">${room.ac ? '❄️ AC' : '🌀 Non-AC'}</span>
-                        <span class="chip">📍 Floor ${room.floor}</span>
-                    </div>
+            const card = document.createElement('div');
+            card.className = `room-card ${cardClass}` + (state.selectedRoom === room.id ? ' is-selected' : '');
+            card.dataset.room = room.id;
+
+            card.innerHTML = `
+                <div class="card-top">
+                    <span class="room-title">${room.id}</span>
+                    <span class="status-badge ${badgeClass}">${badgeText}</span>
                 </div>
-            `;
+                <div class="room-info">
+                    <div><strong>Home Class:</strong> ${room.homeSection}</div>
+                    <div><strong>P${state.period}:</strong> ${subject}</div>
+                    <div><strong>Capacity:</strong> ~${room.capacity} seats</div>
+                </div>
+                <div class="amenities">
+                    <span class="chip">${room.ac ? '❄️ AC' : '🌀 Non-AC'}</span>
+                    <span class="chip">📍 Floor ${room.floor}</span>
+                </div>
+                <div class="card-countdown">
+                    <span class="cc-label">${occ ? 'Frees in' : (timing.freeAllDay ? 'Free all day' : 'Class in')}</span>
+                    <span class="cc-value" data-deadline="${timing.deadline.getTime()}">--:--:--</span>
+                </div>`;
+
+            card.addEventListener('click', () => selectRoom(room.id));
+            grid.appendChild(card);
         });
+
+        container.appendChild(block);
     });
 }
 
-// User Action Handlers
+/* ==================================================================
+   RENDER — DRAWER
+   ================================================================== */
+function renderDrawer() {
+    const room = getRoom(state.selectedRoom);
+    const content = document.getElementById('drawerContent');
+    if (!room) { content.innerHTML = ''; return; }
+
+    const occ = isOccupied(room, state.day, state.period);
+    const claimed = claimedRooms.has(room.id);
+    const timing = getRoomTiming(room);
+    const sched = Array.isArray(room.schedule[state.day]) ? room.schedule[state.day] : [];
+    const subject = occ && room.currentSubject[state.day] && room.currentSubject[state.day][state.period]
+        ? room.currentSubject[state.day][state.period]
+        : null;
+
+    const pillClass = claimed ? 'claimed' : (occ ? 'occupied' : 'empty');
+    const pillText = claimed ? '✋ Claimed by you' : (occ ? '⛔ In class' : '✅ Available now');
+
+    const strip = [1,2,3,4,5,6,7,8,9].map(p => {
+        const busy = sched.includes(p);
+        return `<span class="ps ${busy ? 'busy' : 'free'} ${p === state.period ? 'now' : ''}">${p}</span>`;
+    }).join('');
+
+    let actions = '';
+
+    if (occ) {
+        actions = `
+            <button class="btn ghost" disabled>⛔ Room is currently in use</button>
+            <div class="note-box">
+                This room is occupied for <strong>${subject || 'a scheduled class'}</strong>
+                until <strong>${to12h(PERIOD_TIMES[timing.untilPeriod].end)}</strong>.
+                Check back then, or pick another free room.
+            </div>`;
+    } else if (!claimed) {
+        actions = `
+            <button class="btn primary" onclick="claimSelected()">✋ Claim this room</button>
+            <button class="btn ghost" onclick="copyInvite()">📋 Copy invite text</button>
+            <div class="note-box">
+                Claim the room to unlock the <strong>Call the Squad</strong> button and
+                instantly ping your friends on WhatsApp.
+            </div>`;
+    } else {
+        actions = `
+            <button class="btn squad" onclick="callSquad()">📣 Call the Squad on WhatsApp</button>
+            <button class="btn ghost" onclick="copyInvite()">📋 Copy invite text</button>
+            <button class="btn ghost" onclick="releaseSelected()">↩️ Release claim</button>`;
+    }
+
+    content.innerHTML = `
+        <div class="drawer-room">${room.id}</div>
+        <div class="drawer-sub">Floor ${room.floor} · ${room.homeSection} · ~${room.capacity} seats · ${room.ac ? 'AC' : 'Non-AC'}</div>
+
+        <div class="status-pill ${pillClass}">${pillText}</div>
+
+        <div class="countdown-box">
+            <div class="cd-label">${timing.label}</div>
+            <div class="cd-value" id="cdValue">--:--:--</div>
+            <div class="cd-sub">
+                ${occ ? 'Occupied until' : 'Free until'} <strong>${to12h(timing.untilTime)}</strong>
+                · ${DAY_NAME[state.day]}
+            </div>
+        </div>
+
+        <div class="strip-label">${DAY_NAME[state.day]} schedule — period by period</div>
+        <div class="period-strip">${strip}</div>
+
+        <div class="drawer-actions">${actions}</div>
+    `;
+
+    updateCountdowns();
+}
+
+/* ==================================================================
+   RENDER ALL
+   ================================================================== */
+function renderAll() {
+    renderMap();
+    renderGrid();
+    renderDrawer();
+    updateCountdowns();
+}
+
+/* ==================================================================
+   SELECTION + DRAWER CONTROL
+   ================================================================== */
+function selectRoom(id) {
+    state.selectedRoom = id;
+    openDrawer();
+    renderAll();
+}
+
+function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('backdrop').classList.add('open');
+    document.getElementById('drawer').setAttribute('aria-hidden', 'false');
+}
+
+function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('open');
+    document.getElementById('drawer').setAttribute('aria-hidden', 'true');
+    state.selectedRoom = null;
+    renderMap();
+    renderGrid();
+}
+
+/* ==================================================================
+   CLAIM + SQUAD
+   ================================================================== */
+function claimSelected() {
+    const room = getRoom(state.selectedRoom);
+    if (!room) return;
+    if (isOccupied(room, state.day, state.period)) {
+        showToast('That room is in use right now.');
+        return;
+    }
+    claimedRooms.add(room.id);
+    renderAll();
+    showToast(`✋ ${room.id} claimed — now call the squad!`);
+}
+
+function releaseSelected() {
+    const room = getRoom(state.selectedRoom);
+    if (!room) return;
+    claimedRooms.delete(room.id);
+    renderAll();
+    showToast(`Released ${room.id}`);
+}
+
+function buildInvite(room) {
+    const timing = getRoomTiming(room);
+    const timeStr = to12h(timing.untilTime);
+    return `📍 Heading to ${room.id} (Floor ${room.floor}). It's free until ${timeStr}. Come fast!`;
+}
+
+function callSquad() {
+    const room = getRoom(state.selectedRoom);
+    if (!room) return;
+
+    const msg = buildInvite(room);
+    const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+
+    // Fire the WhatsApp deep link
+    const win = window.open(url, '_blank');
+
+    // Fallback: if popup blocked, copy to clipboard so nothing is lost
+    if (!win) {
+        navigator.clipboard?.writeText(msg).then(() =>
+            showToast('WhatsApp blocked — invite copied instead 📋')
+        );
+    } else {
+        showToast('Opening WhatsApp with your invite… 📣');
+    }
+}
+
+function copyInvite() {
+    const room = getRoom(state.selectedRoom);
+    if (!room) return;
+    const msg = buildInvite(room);
+
+    const done = () => showToast('Invite copied to clipboard 📋');
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(msg).then(done).catch(() => fallbackCopy(msg, done));
+    } else {
+        fallbackCopy(msg, done);
+    }
+}
+
+function fallbackCopy(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); cb(); } catch (e) { showToast('Copy failed'); }
+    document.body.removeChild(ta);
+}
+
+/* ==================================================================
+   LIVE COUNTDOWN TICKER
+   ================================================================== */
+function updateCountdowns() {
+    const now = Date.now();
+
+    // Grid cards
+    document.querySelectorAll('[data-deadline]').forEach(node => {
+        const dl = Number(node.dataset.deadline);
+        node.textContent = formatDuration(dl - now);
+    });
+
+    // Drawer hero countdown
+    const cd = document.getElementById('cdValue');
+    if (cd && state.selectedRoom) {
+        const room = getRoom(state.selectedRoom);
+        if (room) {
+            const t = getRoomTiming(room);
+            cd.textContent = formatDuration(t.deadline.getTime() - now);
+        }
+    }
+
+    // Map header clock
+    const clock = document.getElementById('mapClock');
+    if (clock) {
+        clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+}
+
+setInterval(updateCountdowns, 1000);
+
+/* ==================================================================
+   FILTERS / CONTROLS
+   ================================================================== */
 function manualFilterChange() {
     state.day = document.getElementById('daySelect').value;
-    state.period = parseInt(document.getElementById('periodSelect').value);
+    state.period = parseInt(document.getElementById('periodSelect').value, 10);
     state.floor = document.getElementById('floorSelect').value;
     state.status = document.getElementById('statusSelect').value;
     hideBanner();
-    render();
+    renderAll();
 }
 
 function applyHint(text) {
@@ -490,72 +1084,81 @@ function applyHint(text) {
     processAI(text);
 }
 
-function handleSearch(e) {
-    if (e.key === "Enter" || e.type === "keyup") {
-        processAI(e.target.value);
-    }
-}
-
-// Simulated AI / Natural Language Processing Engine
+/* ==================================================================
+   SIMULATED NLP ENGINE
+   ================================================================== */
 function processAI(query) {
-    const q = query.toLowerCase().trim();
-    if (!q) {
-        hideBanner();
-        render();
-        return;
-    }
+    const q = String(query || '').toLowerCase().trim();
+    if (!q) { hideBanner(); return; }
 
     let parsedDay = state.day;
     let parsedPeriod = state.period;
-    let parsedFloor = "all";
-    let parsedStatus = "all";
-    let extractedFeatures = [];
+    let parsedFloor = 'all';
+    let parsedStatus = 'all';
+    const found = [];
 
-    // Extract Day
-    if (q.includes("mon")) parsedDay = "Mon";
-    else if (q.includes("tue")) parsedDay = "Tue";
-    else if (q.includes("wed")) parsedDay = "Wed";
-    else if (q.includes("thu")) parsedDay = "Thu";
-    else if (q.includes("fri")) parsedDay = "Fri";
+    // Day
+    if (/\bmon/.test(q)) parsedDay = 'Mon';
+    else if (/\btue/.test(q)) parsedDay = 'Tue';
+    else if (/\bwed/.test(q)) parsedDay = 'Wed';
+    else if (/\bthu/.test(q)) parsedDay = 'Thu';
+    else if (/\bfri/.test(q)) parsedDay = 'Fri';
 
-    // Extract Period
-    const periodMatch = q.match(/period\s*(\d)/) || q.match(/p(\d)/);
+    // Period
+    const periodMatch = q.match(/period\s*(\d)/) || q.match(/\bp(\d)\b/);
     if (periodMatch) {
-        parsedPeriod = parseInt(periodMatch[1]);
-        extractedFeatures.push(`Period ${parsedPeriod}`);
+        parsedPeriod = parseInt(periodMatch[1], 10);
+        found.push(`Period ${parsedPeriod}`);
     }
 
-    // Extract Floor
+    // Floor
     const floorMatch = q.match(/(\d)(?:st|nd|rd|th)?\s*floor/) || q.match(/floor\s*(\d)/);
     if (floorMatch) {
         parsedFloor = floorMatch[1] || floorMatch[2];
-        extractedFeatures.push(`Floor ${parsedFloor}`);
+        found.push(`Floor ${parsedFloor}`);
     }
 
-    // Extract Status
-    if (q.includes("empty") || q.includes("available") || q.includes("free")) {
-        parsedStatus = "empty";
-        extractedFeatures.push("Empty Rooms Only");
-    } else if (q.includes("occupied") || q.includes("busy")) {
-        parsedStatus = "occupied";
-        extractedFeatures.push("Occupied Rooms Only");
+    // Status
+    if (/(empty|available|free|vacant)/.test(q)) {
+        parsedStatus = 'empty';
+        found.push('Empty rooms only');
+    } else if (/(occupied|busy|in use)/.test(q)) {
+        parsedStatus = 'occupied';
+        found.push('Occupied rooms only');
     }
 
-    // Update UI Controls
+    // AC preference (informational)
+    const wantsAC = /\bac\b|air.?condition/.test(q);
+    if (wantsAC) found.push('AC preferred');
+
+    // Sync UI
     document.getElementById('daySelect').value = parsedDay;
     document.getElementById('periodSelect').value = parsedPeriod;
     document.getElementById('floorSelect').value = parsedFloor;
     document.getElementById('statusSelect').value = parsedStatus;
 
-    // Sync State
     state.day = parsedDay;
     state.period = parsedPeriod;
     state.floor = parsedFloor;
     state.status = parsedStatus;
 
-    // Display AI Banner Context
-    showBanner(`🤖 <strong>AI Parsed Request:</strong> Day = ${parsedDay}, Period = ${parsedPeriod}, Floor = ${parsedFloor}, Status = ${parsedStatus}`);
-    render();
+    // Direct room lookup (e.g. "show IST 225" / "ist225")
+    const squished = q.replace(/\s+/g, '');
+    const roomHit = roomMaster.find(r => squished.includes(r.id.toLowerCase().replace(/\s+/g, '')));
+    if (roomHit) {
+        state.selectedRoom = roomHit.id;
+        openDrawer();
+        found.push(`Selected ${roomHit.id}`);
+    }
+
+    showBanner(
+        `🤖 <strong>AI Parsed:</strong> ${DAY_NAME[parsedDay]}, Period ${parsedPeriod}` +
+        (parsedFloor !== 'all' ? `, Floor ${parsedFloor}` : '') +
+        (parsedStatus !== 'all' ? `, ${parsedStatus}` : '') +
+        (found.length ? ` — <em>${found.join(' · ')}</em>` : '')
+    );
+
+    renderAll();
 }
 
 function showBanner(msg) {
@@ -563,15 +1166,68 @@ function showBanner(msg) {
     b.innerHTML = msg;
     b.style.display = 'block';
 }
-
 function hideBanner() {
     document.getElementById('aiBanner').style.display = 'none';
 }
 
-// Initial Run
-window.onload = () => {
-    render();
-};
+/* ==================================================================
+   TOAST
+   ================================================================== */
+let toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ==================================================================
+   MAP CLICK DELEGATION
+   ================================================================== */
+document.getElementById('building').addEventListener('click', e => {
+    const tile = e.target.closest('.room-tile');
+    if (!tile || tile.classList.contains('dim')) return;
+    selectRoom(tile.dataset.id);
+});
+
+/* ==================================================================
+   BOOT — sync to real clock
+   ================================================================== */
+function initFromClock() {
+    const now = new Date();
+    const codes = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = codes[now.getDay()];
+    if (['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(today)) state.day = today;
+
+    const mins = now.getHours() * 60 + now.getMinutes();
+    let current = null;
+    let upcoming = null;
+
+    for (let p = 1; p <= 9; p++) {
+        const [sh, sm] = PERIOD_TIMES[p].start.split(':').map(Number);
+        const [eh, em] = PERIOD_TIMES[p].end.split(':').map(Number);
+        if (mins >= sh * 60 + sm && mins < eh * 60 + em) { current = p; break; }
+        if (upcoming === null && mins < sh * 60 + sm) upcoming = p;
+    }
+
+    state.period = current || upcoming || 6;
+
+    document.getElementById('daySelect').value = state.day;
+    document.getElementById('periodSelect').value = state.period;
+}
+
+window.addEventListener('load', () => {
+    initFromClock();
+    renderAll();
+});
+
+// Esc closes the drawer
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('drawer').classList.contains('open')) {
+        closeDrawer();
+    }
+});
 </script>
 </body>
 </html>
