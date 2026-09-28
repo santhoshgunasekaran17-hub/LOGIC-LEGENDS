@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SRM Attendance Predictor & Bunk Planner</title>
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,9 +14,12 @@
                         srm: {
                             navy: '#002147',
                             gold: '#D4AF37',
-                            lightGold: '#F3E5AB',
+                            lightGold: '#F8EFBA',
                             accent: '#1D4ED8',
                             dark: '#0F172A',
+                            emerald: '#059669',
+                            rose: '#E11D48',
+                            amber: '#D97706'
                         }
                     }
                 }
@@ -27,8 +30,8 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -48,26 +51,31 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
     <div id="app" class="flex-grow flex flex-col">
         <!-- Header / Banner -->
-        <header class="bg-srm-navy text-white shadow-lg border-b-4 border-srm-gold">
+        <header class="bg-srm-navy text-white shadow-xl border-b-4 border-srm-gold">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-srm-gold text-srm-navy font-bold rounded-xl flex items-center justify-center text-xl shadow-md border-2 border-white">
+                        <div class="w-12 h-12 bg-srm-gold text-srm-navy font-black rounded-2xl flex items-center justify-center text-xl shadow-lg border-2 border-white">
                             SRM
                         </div>
                         <div>
-                            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">Attendance Predictor & Bunk Planner</h1>
+                            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                                Attendance Predictor & Bunk Planner
+                            </h1>
                             <p class="text-xs sm:text-sm text-slate-300">
-                                SRM Institute of Science and Technology, Tiruchirappalli • SEEE (Odd Sem 2026)
+                                SRM Institute of Science and Technology • Trichy SEEE (Odd Sem 2026)
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700 self-start md:self-auto">
-                        <i data-lucide="calendar" class="w-4 h-4 text-srm-gold"></i>
-                        <span>Semester: <strong class="text-srm-lightGold">29 Aug 2026 - 29 Nov 2026</strong></span>
+                    
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center space-x-2 text-xs bg-slate-800/90 px-3 py-2 rounded-xl border border-slate-700">
+                            <i class="fa-solid fa-calendar-days text-srm-gold"></i>
+                            <span>Semester: <strong class="text-srm-lightGold">29 Aug 2026 - 29 Nov 2026</strong></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -79,10 +87,10 @@
             <!-- Controls Bar: Section Selector & Global Actions -->
             <div class="glass-card p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3 flex-grow">
-                    <label for="sectionSelect" class="text-sm font-semibold text-slate-700 whitespace-nowrap flex items-center gap-1.5">
-                        <i data-lucide="users" class="w-4 h-4 text-srm-accent"></i> Select Section:
+                    <label for="sectionSelect" class="text-sm font-bold text-slate-700 whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-solid fa-users text-srm-accent"></i> Select Section:
                     </label>
-                    <select id="sectionSelect" v-model="selectedSectionId" @change="onSectionChange" class="w-full sm:w-auto bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-srm-accent focus:border-srm-accent shadow-sm">
+                    <select id="sectionSelect" v-model="selectedSectionId" @change="onSectionChange" class="w-full sm:w-auto bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-srm-accent shadow-sm">
                         <option v-for="sec in sections" :key="sec.id" :value="sec.id">
                             {{ sec.name }} (Venue: {{ sec.venue }})
                         </option>
@@ -90,183 +98,212 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    <button @click="generateMockData" class="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-medium px-3.5 py-2 rounded-xl transition shadow-sm">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-srm-gold"></i>
-                        <span>Load Sample Data</span>
+                    <button @click="markAllPresent" class="inline-flex items-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition shadow-xs">
+                        <i class="fa-solid fa-check"></i>
+                        <span>+1 Present All</span>
                     </button>
-                    <button @click="resetData" class="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs sm:text-sm font-medium px-3.5 py-2 rounded-xl transition shadow-sm">
-                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <button @click="generateMockData" class="inline-flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition shadow-xs">
+                        <i class="fa-solid fa-wand-magic-sparkles text-srm-gold"></i>
+                        <span>Load Sample</span>
+                    </button>
+                    <button @click="resetData" class="inline-flex items-center space-x-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition shadow-xs">
+                        <i class="fa-solid fa-rotate-left"></i>
                         <span>Reset</span>
                     </button>
                 </div>
             </div>
 
             <!-- Tab Navigation -->
-            <div class="flex border-b border-slate-200 space-x-2 sm:space-x-4 overflow-x-auto custom-scrollbar pb-1">
+            <div class="flex border-b border-slate-200 space-x-2 overflow-x-auto custom-scrollbar pb-1">
                 <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
                     :class="[
-                        'flex items-center space-x-2 px-4 py-2.5 font-semibold text-sm rounded-t-xl transition-all whitespace-nowrap border-b-2',
+                        'flex items-center space-x-2 px-4 py-2.5 font-bold text-sm rounded-t-xl transition-all whitespace-nowrap border-b-2',
                         activeTab === tab.id 
-                            ? 'border-srm-accent text-srm-accent bg-blue-50/50 shadow-sm' 
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
+                            ? 'border-srm-accent text-srm-accent bg-blue-50/60 shadow-xs' 
+                            : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
                     ]">
-                    <i :data-lucide="tab.icon" class="w-4 h-4"></i>
+                    <i :class="tab.icon"></i>
                     <span>{{ tab.label }}</span>
                 </button>
             </div>
 
-            <!-- TAB 1: OVERALL DASHBOARD & PREDICTOR -->
+            <!-- TAB 1: OVERVIEW & SIMULATOR -->
             <div v-show="activeTab === 'dashboard'" class="space-y-6">
                 <!-- Status Cards Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Current Attendance -->
+                    <!-- Current Attendance Card -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4" :class="statusBorderColor">
-                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
-                            <span>Current Attendance</span>
-                            <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                            <span>Effective Attendance</span>
+                            <i class="fa-solid fa-chart-line text-slate-400"></i>
                         </div>
                         <div class="flex items-baseline justify-between">
-                            <span class="text-3xl font-extrabold" :class="statusTextColor">{{ overallStats.percentage.toFixed(1) }}%</span>
+                            <span class="text-3xl font-black" :class="statusTextColor">{{ overallStats.percentage.toFixed(1) }}%</span>
                             <span :class="['px-2.5 py-0.5 rounded-full text-xs font-bold', statusBadgeClass]">
                                 {{ overallStats.zone }}
                             </span>
                         </div>
                         <p class="text-xs text-slate-500 mt-2">
-                            Attended <strong>{{ overallStats.attended }}</strong> / <strong>{{ overallStats.conducted }}</strong> conducted classes
+                            Attended: <strong>{{ overallStats.attended + overallStats.od + overallStats.ml }}</strong> / <strong>{{ overallStats.conducted }}</strong>
+                            <span class="block text-[11px] text-slate-400 mt-0.5">
+                                (Present: {{ overallStats.attended }} | OD: {{ overallStats.od }} | ML: {{ overallStats.ml }})
+                            </span>
                         </p>
                     </div>
 
                     <!-- Target 90% Requirement -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
-                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
-                            <span>Goal for 90% Safe Zone</span>
-                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                            <span>Goal for 90% (Safe Zone)</span>
+                            <i class="fa-solid fa-shield-halved text-emerald-500"></i>
                         </div>
                         <div class="text-2xl font-bold text-slate-800">
                             <template v-if="target90Needed <= 0">
-                                <span class="text-emerald-600">Goal Reached! 🎉</span>
+                                <span class="text-emerald-600 font-extrabold"><i class="fa-solid fa-circle-check"></i> Target Met!</span>
                             </template>
                             <template v-else-if="target90Needed <= remainingClasses">
-                                Need <span class="text-emerald-600 font-extrabold">{{ target90Needed }}</span> more
+                                Need <span class="text-emerald-600 font-extrabold">{{ target90Needed }}</span> consecutive
                             </template>
                             <template v-else>
-                                <span class="text-rose-500 text-lg">Impossible (Need {{ target90Needed }})</span>
+                                <span class="text-rose-500 text-base font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Unreachable (Need {{ target90Needed }})</span>
                             </template>
                         </div>
                         <p class="text-xs text-slate-500 mt-2">
-                            Consecutive classes needed out of {{ remainingClasses }} remaining
+                            Classes needed out of <strong>{{ remainingClasses }}</strong> remaining
                         </p>
                     </div>
 
-                    <!-- Max Bunk Allowance (75%) -->
+                    <!-- Max Bunks Allowed for 75% -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-amber-500">
-                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
                             <span>Max Bunks Allowed (75%)</span>
-                            <i data-lucide="coffee" class="w-4 h-4 text-amber-500"></i>
+                            <i class="fa-solid fa-mug-hot text-amber-500"></i>
                         </div>
                         <div class="text-2xl font-bold">
-                            <template v-if="maxBunksAllowed75 >= 0">
-                                <span class="text-amber-600 font-extrabold">{{ maxBunksAllowed75 }}</span> <span class="text-xs text-slate-500 font-normal">classes</span>
+                            <template v-if="maxBunksAllowed75 > 0">
+                                <span class="text-amber-600 font-black">{{ maxBunksAllowed75 }}</span> <span class="text-xs text-slate-500 font-normal">classes</span>
                             </template>
                             <template v-else>
-                                <span class="text-rose-600 font-extrabold">0 Bunks</span>
+                                <span class="text-rose-600 font-extrabold">0 Bunks Left</span>
                             </template>
                         </div>
                         <p class="text-xs text-slate-500 mt-2">
-                            Can miss before slipping into Detention Zone (&lt;75%)
+                            Classes you can miss without dropping below 75% debarment
                         </p>
                     </div>
 
-                    <!-- Semester Class Progress -->
+                    <!-- Semester Class Completion -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
-                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
-                            <span>Semester Completion</span>
-                            <i data-lucide="calendar-days" class="w-4 h-4 text-blue-500"></i>
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
+                            <span>Semester Progress</span>
+                            <i class="fa-solid fa-spinner text-blue-500"></i>
                         </div>
                         <div class="text-2xl font-bold text-slate-800">
-                            {{ ((overallStats.conducted / totalSemesterClasses) * 100).toFixed(0) }}%
+                            {{ totalSemesterClasses > 0 ? ((overallStats.conducted / totalSemesterClasses) * 100).toFixed(0) : 0 }}%
                         </div>
                         <p class="text-xs text-slate-500 mt-2">
-                            Conducted {{ overallStats.conducted }} / {{ totalSemesterClasses }} total semester classes
+                            Conducted <strong>{{ overallStats.conducted }}</strong> / <strong>{{ totalSemesterClasses }}</strong> total semester classes
                         </p>
                     </div>
                 </div>
 
                 <!-- Interactive "What-If" Future Bunk Simulator -->
                 <div class="glass-card p-6 rounded-2xl shadow-sm space-y-4 border-t-4 border-srm-accent">
-                    <div class="flex items-center space-x-2">
-                        <i data-lucide="calculator" class="w-5 h-5 text-srm-accent"></i>
-                        <h2 class="text-lg font-bold text-slate-800">Interactive Bunk Simulator ("What-If" Analysis)</h2>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-calculator text-srm-accent text-lg"></i>
+                            <h2 class="text-lg font-bold text-slate-800">Timetable-Aware Bunk Simulator ("What-If" Analysis)</h2>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-srm-accent rounded-lg border border-blue-200">
+                            Live Simulation
+                        </span>
                     </div>
                     <p class="text-xs text-slate-500">
-                        Simulate planned absences for upcoming classes or custom date ranges to see how your attendance percentage changes.
+                        Simulate missing upcoming classes by count or select date ranges. Date range selection parses your section's actual weekly timetable!
                     </p>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Simulate Missing Next 'N' Classes:</label>
+                        <!-- Mode A: Simple Class Count Bunk -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">Option A: Miss Next 'N' Classes</label>
                             <div class="flex items-center space-x-2">
-                                <input type="number" min="0" :max="remainingClasses" v-model.number="simulatedBunks" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:ring-2 focus:ring-srm-accent">
-                                <span class="text-xs text-slate-500 whitespace-nowrap">classes</span>
+                                <input type="number" min="0" :max="remainingClasses" v-model.number="simulatedBunks" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 shadow-xs focus:ring-2 focus:ring-srm-accent">
+                                <span class="text-xs text-slate-500 whitespace-nowrap font-medium">classes</span>
                             </div>
                         </div>
 
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Simulate Date Range Absences:</label>
+                        <!-- Mode B: Timetable Date Range Picker -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">Option B: Select Date Range Absence</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="date" min="2026-08-29" max="2026-11-29" v-model="simStartDate" class="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
-                                <input type="date" min="2026-08-29" max="2026-11-29" v-model="simEndDate" class="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold block mb-0.5">FROM:</span>
+                                    <input type="date" min="2026-08-29" max="2026-11-29" v-model="simStartDate" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold block mb-0.5">TO:</span>
+                                    <input type="date" min="2026-08-29" max="2026-11-29" v-model="simEndDate" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold">
+                                </div>
                             </div>
                         </div>
 
+                        <!-- Result Display Box -->
                         <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md flex flex-col justify-between">
-                            <span class="text-xs text-slate-400 font-semibold uppercase">Projected Attendance</span>
-                            <div class="flex items-baseline justify-between mt-1">
-                                <span class="text-2xl font-extrabold" :class="simulatedResult.colorClass">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-bold uppercase tracking-wide">Projected Attendance</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                                    Simulated
+                                </span>
+                            </div>
+                            <div class="flex items-baseline justify-between mt-2">
+                                <span class="text-3xl font-black" :class="simulatedResult.colorClass">
                                     {{ simulatedResult.percentage.toFixed(1) }}%
                                 </span>
-                                <span class="text-xs px-2 py-0.5 rounded font-medium bg-slate-800 text-slate-300">
+                                <span class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-800 border border-slate-700 text-slate-200">
                                     {{ simulatedResult.zone }}
                                 </span>
                             </div>
-                            <span class="text-[11px] text-slate-400 mt-1">
-                                Total Absences simulated: {{ simulatedResult.totalAbsences }}
-                            </span>
+                            <div class="text-[11px] text-slate-400 mt-2 flex justify-between border-t border-slate-800 pt-1.5">
+                                <span>Simulated Missed Classes:</span>
+                                <strong class="text-amber-400">{{ simulatedResult.totalAbsences }}</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Charts & Subject Breakdown Grid -->
+                <!-- Charts & Subject Snapshot Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Chart Box -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm lg:col-span-1 flex flex-col">
-                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                            <i data-lucide="pie-chart" class="w-4 h-4 text-srm-accent"></i> Attendance Distribution
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-srm-accent"></i> Subject Health Breakdown
                         </h3>
                         <div class="relative flex-grow flex items-center justify-center min-h-[220px]">
                             <canvas id="attendanceChart"></canvas>
                         </div>
                     </div>
 
+                    <!-- Subject Target Snapshot Box -->
                     <div class="glass-card p-5 rounded-2xl shadow-sm lg:col-span-2 space-y-4">
-                        <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-srm-accent"></i> Subject Target Threshold Snapshot
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-srm-accent"></i> Quick Subject Status Overview
                         </h3>
-                        <div class="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
-                            <div v-for="subj in activeSubjects" :key="subj.code" class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                            <div v-for="subj in activeSubjects" :key="subj.code" class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div class="flex-grow">
                                     <div class="flex items-center space-x-2">
-                                        <span class="text-xs font-bold text-srm-navy bg-srm-gold/20 px-2 py-0.5 rounded border border-srm-gold/30">{{ subj.code }}</span>
-                                        <span class="text-xs font-semibold text-slate-800 line-clamp-1">{{ subj.name }}</span>
+                                        <span class="text-[11px] font-black text-srm-navy bg-srm-gold/20 px-2 py-0.5 rounded border border-srm-gold/40">{{ subj.code }}</span>
+                                        <span class="text-xs font-bold text-slate-800 line-clamp-1">{{ subj.name }}</span>
                                     </div>
                                     <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
                                         <div class="h-full rounded-full transition-all duration-300" 
                                              :class="getSubjectColorClass(subj)"
-                                             :style="{ width: getSubjectPercentage(subj) + '%' }"></div>
+                                             :style="{ width: Math.min(100, getSubjectPercentage(subj)) + '%' }"></div>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between sm:justify-end gap-3 min-w-[140px]">
-                                    <span class="text-xs font-bold text-slate-700">{{ getSubjectPercentage(subj).toFixed(1) }}%</span>
-                                    <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full', getSubjectBadgeClass(subj)]">
+                                <div class="flex items-center justify-between sm:justify-end gap-3 min-w-[150px]">
+                                    <span class="text-xs font-black text-slate-700">{{ getSubjectPercentage(subj).toFixed(1) }}%</span>
+                                    <span :class="['text-[11px] font-bold px-2.5 py-0.5 rounded-full', getSubjectBadgeClass(subj)]">
                                         {{ getSubjectZone(subj) }}
                                     </span>
                                 </div>
@@ -276,12 +313,12 @@
                 </div>
             </div>
 
-            <!-- TAB 2: SUBJECT-WISE MARKING -->
+            <!-- TAB 2: SUBJECT-WISE TRACKER -->
             <div v-show="activeTab === 'subjects'" class="space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-800">Subject-wise Attendance Tracker</h2>
-                        <p class="text-xs text-slate-500">Update conducted and attended classes per course to get specific predictions.</p>
+                        <h2 class="text-lg font-bold text-slate-800">Subject-wise Attendance & Leave Log</h2>
+                        <p class="text-xs text-slate-500">Log attended classes, On-Duty (OD), and Medical Leave (ML) for accurate prediction.</p>
                     </div>
                 </div>
 
@@ -290,51 +327,73 @@
                         <div>
                             <div class="flex items-start justify-between gap-2 mb-2">
                                 <div>
-                                    <span class="text-xs font-extrabold text-srm-accent bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ subj.code }}</span>
+                                    <span class="text-xs font-extrabold text-srm-accent bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">{{ subj.code }}</span>
                                     <h3 class="text-sm font-bold text-slate-800 mt-1">{{ subj.name }}</h3>
-                                    <p class="text-[11px] text-slate-500 mt-0.5">Faculty: {{ subj.faculty || 'N/A' }} | Slot: <strong>{{ subj.slot }}</strong></p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Faculty: <strong>{{ subj.faculty || 'N/A' }}</strong> | Slot: <strong>{{ subj.slot }}</strong></p>
                                 </div>
-                                <span :class="['text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap', getSubjectBadgeClass(subj)]">
+                                <span :class="['text-xs font-black px-2.5 py-1 rounded-full whitespace-nowrap', getSubjectBadgeClass(subj)]">
                                     {{ getSubjectPercentage(subj).toFixed(1) }}%
                                 </span>
                             </div>
 
                             <!-- Progress Bar -->
                             <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden my-3 border border-slate-200">
-                                <div class="h-full transition-all duration-300" :class="getSubjectColorClass(subj)" :style="{ width: getSubjectPercentage(subj) + '%' }"></div>
+                                <div class="h-full transition-all duration-300" :class="getSubjectColorClass(subj)" :style="{ width: Math.min(100, getSubjectPercentage(subj)) + '%' }"></div>
                             </div>
 
-                            <!-- Counter Controls -->
-                            <div class="grid grid-cols-2 gap-3 mt-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <!-- Inputs Grid -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                                <!-- Attended -->
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Attended Classes</label>
-                                    <div class="flex items-center space-x-1">
-                                        <button @click="updateAttendance(subj.code, 'attended', -1)" class="w-7 h-7 bg-white hover:bg-slate-100 border border-slate-300 rounded font-bold text-slate-700">-</button>
-                                        <input type="number" min="0" :value="getAttended(subj.code)" @input="setAttended(subj.code, $event.target.value)" class="w-full text-center bg-white border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800">
-                                        <button @click="updateAttendance(subj.code, 'attended', 1)" class="w-7 h-7 bg-white hover:bg-slate-100 border border-slate-300 rounded font-bold text-slate-700">+</button>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Attended</label>
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <button @click="updateAttendance(subj.code, 'attended', -1)" class="w-6 h-6 bg-white hover:bg-slate-200 border rounded font-bold text-xs">-</button>
+                                        <span class="text-xs font-bold w-6 text-slate-800">{{ getAttended(subj.code) }}</span>
+                                        <button @click="updateAttendance(subj.code, 'attended', 1)" class="w-6 h-6 bg-white hover:bg-slate-200 border rounded font-bold text-xs">+</button>
                                     </div>
                                 </div>
 
+                                <!-- OD -->
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Conducted Classes</label>
-                                    <div class="flex items-center space-x-1">
-                                        <button @click="updateAttendance(subj.code, 'conducted', -1)" class="w-7 h-7 bg-white hover:bg-slate-100 border border-slate-300 rounded font-bold text-slate-700">-</button>
-                                        <input type="number" min="0" :value="getConducted(subj.code)" @input="setConducted(subj.code, $event.target.value)" class="w-full text-center bg-white border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800">
-                                        <button @click="updateAttendance(subj.code, 'conducted', 1)" class="w-7 h-7 bg-white hover:bg-slate-100 border border-slate-300 rounded font-bold text-slate-700">+</button>
+                                    <label class="block text-[10px] font-bold text-blue-600 uppercase mb-1">OD</label>
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <button @click="updateAttendance(subj.code, 'od', -1)" class="w-6 h-6 bg-white hover:bg-blue-100 border border-blue-200 rounded font-bold text-xs text-blue-700">-</button>
+                                        <span class="text-xs font-bold w-6 text-blue-800">{{ getOD(subj.code) }}</span>
+                                        <button @click="updateAttendance(subj.code, 'od', 1)" class="w-6 h-6 bg-white hover:bg-blue-100 border border-blue-200 rounded font-bold text-xs text-blue-700">+</button>
+                                    </div>
+                                </div>
+
+                                <!-- ML -->
+                                <div>
+                                    <label class="block text-[10px] font-bold text-purple-600 uppercase mb-1">ML</label>
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <button @click="updateAttendance(subj.code, 'ml', -1)" class="w-6 h-6 bg-white hover:bg-purple-100 border border-purple-200 rounded font-bold text-xs text-purple-700">-</button>
+                                        <span class="text-xs font-bold w-6 text-purple-800">{{ getML(subj.code) }}</span>
+                                        <button @click="updateAttendance(subj.code, 'ml', 1)" class="w-6 h-6 bg-white hover:bg-purple-100 border border-purple-200 rounded font-bold text-xs text-purple-700">+</button>
+                                    </div>
+                                </div>
+
+                                <!-- Conducted -->
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Total Held</label>
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <button @click="updateAttendance(subj.code, 'conducted', -1)" class="w-6 h-6 bg-white hover:bg-slate-200 border rounded font-bold text-xs">-</button>
+                                        <span class="text-xs font-bold w-6 text-slate-800">{{ getConducted(subj.code) }}</span>
+                                        <button @click="updateAttendance(subj.code, 'conducted', 1)" class="w-6 h-6 bg-white hover:bg-slate-200 border rounded font-bold text-xs">+</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Subject Specific Predictor Note -->
-                        <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-                            <div class="flex justify-between">
-                                <span>Classes needed for 90%:</span>
-                                <strong class="text-emerald-600">{{ getSubjTargetNeeded(subj, 90) }}</strong>
+                        <!-- Subject Analytics -->
+                        <div class="pt-3 border-t border-slate-100 text-[11px] text-slate-600 grid grid-cols-2 gap-2 bg-slate-50/50 p-2 rounded-lg">
+                            <div>
+                                <span class="text-slate-400 block font-medium">To reach 90%:</span>
+                                <strong class="text-emerald-600 font-bold">{{ getSubjTargetNeeded(subj, 90) }}</strong>
                             </div>
-                            <div class="flex justify-between">
-                                <span>Max Bunks allowed for 75%:</span>
-                                <strong class="text-amber-600">{{ getSubjMaxBunks(subj, 75) }}</strong>
+                            <div class="text-right">
+                                <span class="text-slate-400 block font-medium">Max Safe Bunks (75%):</span>
+                                <strong class="text-amber-600 font-bold">{{ getSubjMaxBunks(subj, 75) }}</strong>
                             </div>
                         </div>
                     </div>
@@ -345,8 +404,8 @@
             <div v-show="activeTab === 'timetable'" class="space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-800">Section Timetable Grid</h2>
-                        <p class="text-xs text-slate-500">Weekly schedule for {{ currentSection.name }} (Venue: {{ currentSection.venue }})</p>
+                        <h2 class="text-lg font-bold text-slate-800">Weekly Class Timetable</h2>
+                        <p class="text-xs text-slate-500">Official schedule for {{ currentSection.name }} (Venue: {{ currentSection.venue }})</p>
                     </div>
                 </div>
 
@@ -355,25 +414,25 @@
                         <table class="w-full text-left text-xs border-collapse">
                             <thead>
                                 <tr class="bg-srm-navy text-white">
-                                    <th class="p-3 font-semibold border-b border-slate-700 text-center w-24">Day / Period</th>
-                                    <th v-for="p in 9" :key="p" class="p-3 font-semibold border-b border-slate-700 text-center min-w-[100px]">
-                                        P{{ p }}
+                                    <th class="p-3 font-bold border-b border-slate-700 text-center w-24">Day</th>
+                                    <th v-for="p in 9" :key="p" class="p-3 font-bold border-b border-slate-700 text-center min-w-[105px]">
+                                        Period {{ p }}
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
                                 <tr v-for="day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']" :key="day" class="hover:bg-slate-50/80 transition">
-                                    <td class="p-3 font-bold text-slate-700 bg-slate-100 text-center border-r border-slate-200">{{ day }}</td>
+                                    <td class="p-3 font-extrabold text-slate-700 bg-slate-100/80 text-center border-r border-slate-200">{{ day }}</td>
                                     <td v-for="p in 9" :key="p" class="p-2 text-center border-r border-slate-100">
                                         <template v-if="getTimetableCell(day, p)">
-                                            <div class="bg-blue-50/80 border border-blue-200 rounded-lg p-2 text-center shadow-2xs">
-                                                <span class="font-extrabold text-srm-accent block text-[11px]">{{ getTimetableCell(day, p).code }}</span>
-                                                <span class="text-[10px] text-slate-600 block line-clamp-1 mt-0.5">{{ getTimetableCell(day, p).name }}</span>
+                                            <div class="bg-blue-50/90 border border-blue-200 rounded-lg p-2 text-center shadow-2xs">
+                                                <span class="font-black text-srm-accent block text-[11px]">{{ getTimetableCell(day, p).code }}</span>
+                                                <span class="text-[10px] text-slate-700 font-medium block line-clamp-1 mt-0.5">{{ getTimetableCell(day, p).name }}</span>
                                                 <span class="text-[9px] text-slate-400 block mt-0.5">Slot: {{ getTimetableCell(day, p).slot }}</span>
                                             </div>
                                         </template>
                                         <template v-else>
-                                            <span class="text-slate-300 italic text-[11px]">-</span>
+                                            <span class="text-slate-300 font-light text-[11px]">-</span>
                                         </template>
                                     </td>
                                 </tr>
@@ -383,41 +442,94 @@
                 </div>
             </div>
 
-            <!-- TAB 4: CALENDAR & ACADEMIC INFO -->
+            <!-- TAB 4: ACADEMIC RULES & POLICY -->
             <div v-show="activeTab === 'calendar'" class="space-y-6">
                 <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <i data-lucide="info" class="w-5 h-5 text-srm-accent"></i> Semester Academic Metadata
+                        <i class="fa-solid fa-graduation-cap text-srm-accent"></i> SRM Attendance Rules & Policy Guidelines
                     </h2>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <span class="text-slate-500 font-semibold block">Semester Duration</span>
-                            <span class="text-sm font-bold text-slate-800 mt-1 block">29th Aug 2026 – 29th Nov 2026</span>
-                            <span class="text-[11px] text-slate-500 mt-1 block">Total duration: 93 Calendar Days</span>
+                        <div class="bg-emerald-50/80 p-4 rounded-xl border border-emerald-200">
+                            <span class="text-emerald-800 font-bold block text-sm">Safe / Distinction Zone</span>
+                            <span class="text-2xl font-black text-emerald-600 my-1 block">&ge; 90%</span>
+                            <p class="text-slate-600 text-[11px]">
+                                Full eligibility for exams, honor status, and maximum safety cushion for unexpected absences.
+                            </p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <span class="text-slate-500 font-semibold block">Attendance Rules</span>
-                            <span class="text-sm font-bold text-rose-600 mt-1 block">&lt; 75%: Detention Zone</span>
-                            <span class="text-[11px] text-emerald-600 mt-1 block">&ge; 90%: Safe Zone Target</span>
+
+                        <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200">
+                            <span class="text-amber-800 font-bold block text-sm">Eligible Zone</span>
+                            <span class="text-2xl font-black text-amber-600 my-1 block">75% - 89.9%</span>
+                            <p class="text-slate-600 text-[11px]">
+                                Regular exam eligibility. Keep track to ensure you don't drop below the mandatory 75% cutoff.
+                            </p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <span class="text-slate-500 font-semibold block">Section Venue</span>
-                            <span class="text-sm font-bold text-slate-800 mt-1 block">{{ currentSection.venue }}</span>
-                            <span class="text-[11px] text-slate-500 mt-1 block">SRM Trichy FET Building</span>
+
+                        <div class="bg-rose-50/80 p-4 rounded-xl border border-rose-200">
+                            <span class="text-rose-800 font-bold block text-sm">Detention Danger Zone</span>
+                            <span class="text-2xl font-black text-rose-600 my-1 block">&lt; 75%</span>
+                            <p class="text-slate-600 text-[11px]">
+                                Debarred from End-Semester examinations unless supported by approved OD/Medical Leave sanction.
+                            </p>
                         </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
+                        <h4 class="font-bold text-slate-800">Key Information for Odd Semester 2026:</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-600">
+                            <li><strong>Semester Duration:</strong> 29th August 2026 to 29th November 2026 (~13 Teaching Weeks).</li>
+                            <li><strong>On-Duty (OD) & Medical Leave (ML):</strong> Count as attendance credit when officially approved on the portal.</li>
+                            <li><strong>Calculated Effective Attendance:</strong> $\frac{\text{Present} + \text{OD} + \text{ML}}{\text{Conducted}} \times 100\%$</li>
+                        </ul>
                     </div>
                 </div>
             </div>
-
         </main>
+
+        <!-- Floating AI Chatbot -->
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            <!-- Chat Window -->
+            <div v-show="isChatOpen" class="bg-white w-80 sm:w-96 rounded-2xl shadow-2xl border border-slate-200 mb-4 overflow-hidden flex flex-col h-96 transition-all transform origin-bottom-right">
+                <div class="bg-srm-navy text-white px-4 py-3 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-robot text-srm-gold"></i>
+                        <span class="font-bold text-sm">YUVA</span>
+                    </div>
+                    <button @click="isChatOpen = false" class="text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-grow p-4 overflow-y-auto bg-slate-50 space-y-3 custom-scrollbar" id="chat-messages">
+                    <div v-for="(msg, index) in chatMessages" :key="index" :class="msg.sender === 'user' ? 'text-right' : 'text-left'">
+                        <span :class="msg.sender === 'user' ? 'bg-srm-accent text-white' : 'bg-slate-200 text-slate-800'" class="inline-block px-3 py-2 rounded-xl text-xs max-w-[85%] text-left shadow-sm">
+                            {{ msg.text }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-white border-t border-slate-200 flex gap-2 items-center">
+                    <input v-model="userInput" @keyup.enter="sendMessage" type="text" placeholder="Ask about taking leave..." class="flex-grow text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-srm-accent">
+                    <button @click="sendMessage" class="bg-srm-accent text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Floating Trigger Button -->
+            <button @click="isChatOpen = !isChatOpen" class="bg-srm-accent hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-105 border-2 border-white">
+                <i class="fa-solid" :class="isChatOpen ? 'fa-xmark' : 'fa-message'"></i>
+            </button>
+        </div>
 
         <!-- Footer -->
         <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-12">
             <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
-                <p class="font-medium text-slate-300">SRM Institute of Science and Technology - Tiruchirappalli Campus</p>
+                <p class="font-bold text-slate-300">SRM Institute of Science and Technology - Tiruchirappalli Campus</p>
                 <p>Faculty of Engineering and Technology • School of Electrical and Electronics Engineering</p>
                 <p class="text-[11px] text-slate-500 pt-2 border-t border-slate-800 max-w-md mx-auto">
-                    Built for academic attendance tracking. Always verify official records with portal data.
+                    Designed for internal student planning. Always verify official records on Academia Portal.
                 </p>
             </div>
         </footer>
@@ -428,16 +540,23 @@
 
         createApp({
             setup() {
-                // Active Navigation Tab
                 const activeTab = ref('dashboard');
+                
+                // Chatbot State
+                const isChatOpen = ref(false);
+                const userInput = ref('');
+                const chatMessages = ref([
+                    { sender: 'bot', text: 'Hi! I am your YUVA chatbot Attendance Advisor. Ask me things like, "If I take a 3-day sick leave starting tomorrow, will my Chemistry attendance drop below 75%?"' }
+                ]);
+
                 const tabs = [
-                    { id: 'dashboard', label: 'Overview & Predictor', icon: 'layout-dashboard' },
-                    { id: 'subjects', label: 'Subject Tracker', icon: 'book-open' },
-                    { id: 'timetable', label: 'Section Timetable', icon: 'calendar-grid' },
-                    { id: 'calendar', label: 'Academic Rules', icon: 'shield-alert' }
+                    { id: 'dashboard', label: 'Overview & Predictor', icon: 'fa-solid fa-chart-pie' },
+                    { id: 'subjects', label: 'Subject Tracker', icon: 'fa-solid fa-book-bookmark' },
+                    { id: 'timetable', label: 'Section Timetable', icon: 'fa-solid fa-table-cells' },
+                    { id: 'calendar', label: 'Academic Rules', icon: 'fa-solid fa-shield-halved' }
                 ];
 
-                // Timetables and Section Data extracted from PDF prompt
+                // Section details & Timetables
                 const sections = [
                     {
                         id: 'IV_ECE_A',
@@ -599,41 +718,42 @@
                         }
                     },
                     {
-                        id: 'I_YEAR_GEN',
-                        name: 'I Year ECE/BME/BT',
-                        venue: 'IST 602 / IST 710',
+                        id: 'I_YEAR_ECE_BME_BT',
+                        name: 'I Year ECE / BME / BT (Sem 1 & 2)',
+                        venue: 'IST 101/FN',
                         subjects: [
-                            { code: '21MAB102T', name: 'Advanced Calculus', slot: 'A', faculty: 'Dr. R. Ragul' },
-                            { code: '21CYB101J', name: 'Chemistry', slot: 'B', faculty: 'Dr. P. Pachamuthu' },
-                            { code: '21BTB102J', name: 'Electronic System & PCB', slot: 'C', faculty: 'Dr. U. Shajith Ali' },
-                            { code: '21CSS101J', name: 'Programming for Problem Solving', slot: 'D', faculty: 'Dr. A. Rama Prasath' },
-                            { code: '21GNH101J', name: 'Philosophy of Engineering', slot: 'E', faculty: 'Dr. R. Aarthi' }
+                            { code: '21MAB101T', name: 'Calculus and Linear Algebra', slot: 'A', faculty: 'Dr. M. Thanga Rejini' },
+                            { code: '21PYB101J', name: 'Engineering Physics', slot: 'B', faculty: 'Dr. A. Anand' },
+                            { code: '21CYB101J', name: 'Engineering Chemistry', slot: 'C', faculty: 'Dr. K. M. Karuppusamy' },
+                            { code: '21EES101T', name: 'Basic Electrical & Electronics Engineering', slot: 'D', faculty: 'Dr. M. Manikandan' },
+                            { code: '21CSB101J', name: 'Programming for Problem Solving', slot: 'E', faculty: 'Dr. J. Jencia' },
+                            { code: '21LEH101T', name: 'Technical English & Communication', slot: 'F', faculty: 'Dr. Prabin Kumar Bera' }
                         ],
                         timetable: {
-                            Monday: [{code:'21GNH101J'}, {code:'21GNH101J'}, {code:'21CYB101J'}, {code:'21MAB102T'}, null, null, null, null, null],
-                            Tuesday: [{code:'21BTB102J'}, {code:'21CYB101J'}, {code:'21MAB102T'}, {code:'21CSS101J'}, null, null, null, null, null],
-                            Wednesday: [{code:'21CYB101J'}, {code:'21GNH101J'}, {code:'21CSS101J'}, null, null, null, null, null, null],
-                            Thursday: [null, {code:'21LEH104T'}, null, {code:'21MAB102T'}, null, null, null, null, null],
-                            Friday: [{code:'21CSS101J'}, {code:'21MAB102T'}, {code:'21BTB102J'}, {code:'21CYB101J'}, null, null, null, null, null]
+                            Monday: [{code:'21MAB101T'}, {code:'21PYB101J'}, {code:'21CYB101J'}, {code:'21EES101T'}, {code:'21CSB101J'}, null, null, null, null],
+                            Tuesday: [{code:'21CSB101J'}, {code:'21MAB101T'}, {code:'21LEH101T'}, {code:'21PYB101J'}, {code:'21CYB101J'}, null, null, null, null],
+                            Wednesday: [{code:'21CYB101J'}, {code:'21EES101T'}, {code:'21MAB101T'}, {code:'21LEH101T'}, null, null, null, null, null],
+                            Thursday: [{code:'21LEH101T'}, {code:'21PYB101J'}, {code:'21EES101T'}, {code:'21CSB101J'}, {code:'21MAB101T'}, null, null, null, null],
+                            Friday: [{code:'21EES101T'}, {code:'21CYB101J'}, {code:'21CSB101J'}, {code:'21PYB101J'}, null, null, null, null, null]
                         }
                     },
                     {
                         id: 'II_BME',
-                        name: 'II BME',
-                        venue: 'IST 602/FN',
+                        name: 'II BME (Sem 3 & 4)',
+                        venue: 'IST 212/AN',
                         subjects: [
-                            { code: '21MAB201T', name: 'Transforms & BVP', slot: 'A', faculty: 'Dr.A.Manickam' },
-                            { code: '21BMC202T', name: 'Biomedical Signals', slot: 'B', faculty: 'Dr. Senthil Kumaran V N' },
-                            { code: '21BMC203J', name: 'Electric Circuits', slot: 'C', faculty: 'Dr. Prabin Kumar Bera' },
-                            { code: '21BMC204J', name: 'Digital Logic for Medical', slot: 'D', faculty: 'Dr. G. Gifta' },
-                            { code: '21PYS202T', name: 'Medical Physics', slot: 'E', faculty: 'Dr.D.Rajeswari' }
+                            { code: '21MAB201T', name: 'Transforms & Partial Differential Equations', slot: 'A', faculty: 'Dr. K. M. Karuppusamy' },
+                            { code: '21BMC201T', name: 'Human Anatomy & Physiology', slot: 'B', faculty: 'Dr. G. Gifta' },
+                            { code: '21BMC202J', name: 'Biomedical Sensors & Transducers', slot: 'C', faculty: 'Dr. V.N. Senthilkumaran' },
+                            { code: '21ECC203T', name: 'Digital Electronics', slot: 'D', faculty: 'Dr. S. Krishnakumar' },
+                            { code: '21BMC203P', name: 'Human Physiology Laboratory', slot: 'E', faculty: 'Dr. K. Vigneshwaran' }
                         ],
                         timetable: {
-                            Monday: [{code:'21PYS202T'}, {code:'21BMC203J'}, {code:'21BMC202T'}, {code:'21BMC203J'}, null, null, null, null, null],
-                            Tuesday: [{code:'21BMC203J'}, {code:'21PYS202T'}, {code:'21BMC204J'}, {code:'21PDM201L'}, null, null, null, null, null],
-                            Wednesday: [{code:'21BMC202T'}, {code:'21BMC204J'}, {code:'21MAB201T'}, {code:'21PDH201T'}, {code:'21MAB201T'}, null, null, null, null],
-                            Thursday: [{code:'21MAB201T'}, {code:'21PYS202T'}, {code:'21BMC202T'}, {code:'21BMC204J'}, {code:'21BMC203J'}, null, null, null, null],
-                            Friday: [{code:'21LEM201T'}, {code:'21MAB201T'}, {code:'21BMC203J'}, {code:'21BMC204J'}, null, null, null, null, null]
+                            Monday: [{code:'21MAB201T'}, {code:'21BMC201T'}, {code:'21BMC202J'}, {code:'21ECC203T'}, null, null, null, null, null],
+                            Tuesday: [{code:'21BMC202J'}, {code:'21MAB201T'}, {code:'21BMC203P'}, {code:'21BMC201T'}, null, null, null, null, null],
+                            Wednesday: [{code:'21ECC203T'}, {code:'21BMC201T'}, {code:'21MAB201T'}, {code:'21BMC202J'}, null, null, null, null, null],
+                            Thursday: [{code:'21BMC203P'}, {code:'21ECC203T'}, {code:'21MAB201T'}, {code:'21BMC201T'}, null, null, null, null, null],
+                            Friday: [{code:'21BMC201T'}, {code:'21BMC202J'}, {code:'21ECC203T'}, {code:'21MAB201T'}, null, null, null, null, null]
                         }
                     }
                 ];
@@ -641,10 +761,10 @@
                 const selectedSectionId = ref(localStorage.getItem('srm_selected_sec') || 'IV_ECE_A');
                 const attendanceRecords = ref({});
 
-                // Simulator state
+                // Simulator State
                 const simulatedBunks = ref(0);
-                const simStartDate = ref('2026-10-01');
-                const simEndDate = ref('2026-10-05');
+                const simStartDate = ref('');
+                const simEndDate = ref('');
 
                 let chartInstance = null;
 
@@ -654,7 +774,7 @@
 
                 const activeSubjects = computed(() => currentSection.value.subjects);
 
-                // Initialize attendance records structure safely
+                // Initialize records safely
                 const initAttendanceRecords = () => {
                     let savedObj = {};
                     const saved = localStorage.getItem(`srm_att_${selectedSectionId.value}`);
@@ -662,18 +782,24 @@
                         try {
                             savedObj = JSON.parse(saved) || {};
                         } catch (e) {
-                            console.error("Error reading saved data", e);
+                            console.error("Error reading saved attendance data", e);
                         }
                     }
                     
-                    // Guarantee all active subjects for current section exist in attendanceRecords
                     const initial = {};
                     activeSubjects.value.forEach(s => {
-                        if (savedObj[s.code] && typeof savedObj[s.code].attended === 'number') {
-                            initial[s.code] = savedObj[s.code];
+                        if (savedObj[s.code] && typeof savedObj[s.code].conducted === 'number') {
+                            initial[s.code] = {
+                                attended: savedObj[s.code].attended ?? 28,
+                                od: savedObj[s.code].od ?? 0,
+                                ml: savedObj[s.code].ml ?? 0,
+                                conducted: savedObj[s.code].conducted ?? 32
+                            };
                         } else {
                             initial[s.code] = {
                                 attended: 28,
+                                od: 0,
+                                ml: 0,
                                 conducted: 32
                             };
                         }
@@ -681,32 +807,13 @@
                     attendanceRecords.value = initial;
                 };
 
-                // Helper getters and setters for safe template binding
-                const getAttended = (code) => {
-                    return attendanceRecords.value[code] ? attendanceRecords.value[code].attended : 0;
-                };
+                // Safe Field Getters
+                const getAttended = (code) => attendanceRecords.value[code]?.attended ?? 0;
+                const getOD = (code) => attendanceRecords.value[code]?.od ?? 0;
+                const getML = (code) => attendanceRecords.value[code]?.ml ?? 0;
+                const getConducted = (code) => attendanceRecords.value[code]?.conducted ?? 0;
 
-                const setAttended = (code, val) => {
-                    if (!attendanceRecords.value[code]) {
-                        attendanceRecords.value[code] = { attended: 0, conducted: 0 };
-                    }
-                    attendanceRecords.value[code].attended = Math.max(0, parseInt(val) || 0);
-                    validateAttendance(code);
-                };
-
-                const getConducted = (code) => {
-                    return attendanceRecords.value[code] ? attendanceRecords.value[code].conducted : 0;
-                };
-
-                const setConducted = (code, val) => {
-                    if (!attendanceRecords.value[code]) {
-                        attendanceRecords.value[code] = { attended: 0, conducted: 0 };
-                    }
-                    attendanceRecords.value[code].conducted = Math.max(0, parseInt(val) || 0);
-                    validateAttendance(code);
-                };
-
-                // Total semester classes estimated from Aug 29 to Nov 29
+                // Total semester classes estimated from Aug 29 to Nov 29 (13 weeks)
                 const totalSemesterClasses = computed(() => {
                     let weeklyCount = 0;
                     Object.values(currentSection.value.timetable).forEach(dayList => {
@@ -715,51 +822,58 @@
                     return weeklyCount * 13;
                 });
 
-                // Calculate overall stats safely
+                // Overall Stats
                 const overallStats = computed(() => {
                     let attended = 0;
+                    let od = 0;
+                    let ml = 0;
                     let conducted = 0;
 
                     activeSubjects.value.forEach(s => {
                         const r = attendanceRecords.value[s.code];
                         if (r) {
                             attended += (Number(r.attended) || 0);
+                            od += (Number(r.od) || 0);
+                            ml += (Number(r.ml) || 0);
                             conducted += (Number(r.conducted) || 0);
                         }
                     });
 
-                    const percentage = conducted > 0 ? (attended / conducted) * 100 : 100;
+                    const effectivePresent = attended + od + ml;
+                    const percentage = conducted > 0 ? (effectivePresent / conducted) * 100 : 100;
+                    
                     let zone = 'Safe Zone';
-                    if (percentage < 75) zone = 'Detention Zone';
-                    else if (percentage < 90) zone = 'Warning Zone';
+                    if (percentage < 65) zone = 'Detention Zone (<65%)';
+                    else if (percentage < 75) zone = 'Warning / Medical Zone';
+                    else if (percentage < 90) zone = 'Eligible Zone';
 
-                    return { attended, conducted, percentage, zone };
+                    return { attended, od, ml, conducted, percentage, zone };
                 });
 
-                // Remaining classes in semester
                 const remainingClasses = computed(() => {
                     return Math.max(0, totalSemesterClasses.value - overallStats.value.conducted);
                 });
 
-                // Targets needed calculation
+                // Target 90% consecutive classes required
                 const target90Needed = computed(() => {
-                    const { attended, conducted } = overallStats.value;
-                    // Formula: (0.9 * conducted - attended) / (1 - 0.9)
-                    const req = Math.ceil((0.9 * conducted - attended) / 0.1);
+                    const { attended, od, ml, conducted } = overallStats.value;
+                    const effectivePresent = attended + od + ml;
+                    const req = Math.ceil((0.9 * conducted - effectivePresent) / 0.1);
                     return req > 0 ? req : 0;
                 });
 
+                // Max bunks allowed while maintaining >= 75%
                 const maxBunksAllowed75 = computed(() => {
-                    const { attended, conducted } = overallStats.value;
+                    const { attended, od, ml, conducted } = overallStats.value;
+                    const effectivePresent = attended + od + ml;
                     const remaining = remainingClasses.value;
                     const totalPossible = conducted + remaining;
-                    // Formula: Max missing out of total possible while keeping attended >= 0.75 * total
-                    const minAttendedNeeded = 0.75 * totalPossible;
-                    const extraAttendedAvailable = attended + remaining - minAttendedNeeded;
-                    return Math.max(0, Math.floor(extraAttendedAvailable));
+                    const minPresentNeeded = 0.75 * totalPossible;
+                    const extraAvailable = effectivePresent + remaining - minPresentNeeded;
+                    return Math.max(0, Math.floor(extraAvailable));
                 });
 
-                // Status Dynamic Classes
+                // Dynamic UI Classes
                 const statusBorderColor = computed(() => {
                     if (overallStats.value.percentage >= 90) return 'border-emerald-500';
                     if (overallStats.value.percentage >= 75) return 'border-amber-500';
@@ -778,31 +892,50 @@
                     return 'bg-rose-100 text-rose-800';
                 });
 
-                // Simulation Logic
-                const simulatedResult = computed(() => {
-                    const { attended, conducted } = overallStats.value;
-                    let extraBunks = simulatedBunks.value;
+                // Timetable-Aware Date Range Simulation
+                const calculateDateRangeBunks = (startStr, endStr) => {
+                    if (!startStr || !endStr) return 0;
+                    const start = new Date(startStr);
+                    const end = new Date(endStr);
+                    if (end < start) return 0;
 
-                    // Date range calculation mock
-                    if (simStartDate.value && simEndDate.value) {
-                        const start = new Date(simStartDate.value);
-                        const end = new Date(simEndDate.value);
-                        if (end >= start) {
-                            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-                            extraBunks += diffDays * 3; // Approx 3 classes per day missed
+                    let totalMissed = 0;
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    
+                    let curr = new Date(start);
+                    while (curr <= end) {
+                        const dayName = dayNames[curr.getDay()];
+                        if (currentSection.value.timetable[dayName]) {
+                            const periods = currentSection.value.timetable[dayName].filter(c => c !== null).length;
+                            totalMissed += periods;
                         }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                    return totalMissed;
+                };
+
+                const simulatedResult = computed(() => {
+                    const { attended, od, ml, conducted } = overallStats.value;
+                    const effectivePresent = attended + od + ml;
+
+                    let extraBunks = simulatedBunks.value || 0;
+                    if (simStartDate.value && simEndDate.value) {
+                        extraBunks += calculateDateRangeBunks(simStartDate.value, simEndDate.value);
                     }
 
                     const newConducted = conducted + extraBunks;
-                    const newPercentage = newConducted > 0 ? (attended / newConducted) * 100 : 0;
+                    const newPercentage = newConducted > 0 ? (effectivePresent / newConducted) * 100 : 0;
 
                     let zone = 'Safe Zone';
                     let colorClass = 'text-emerald-400';
-                    if (newPercentage < 75) {
-                        zone = 'Detention Zone';
+                    if (newPercentage < 65) {
+                        zone = 'Detained Zone';
+                        colorClass = 'text-rose-400';
+                    } else if (newPercentage < 75) {
+                        zone = 'Danger (<75%)';
                         colorClass = 'text-rose-400';
                     } else if (newPercentage < 90) {
-                        zone = 'Warning Zone';
+                        zone = 'Eligible (75-89%)';
                         colorClass = 'text-amber-400';
                     }
 
@@ -818,21 +951,22 @@
                 const getSubjectPercentage = (subj) => {
                     const r = attendanceRecords.value[subj.code];
                     if (!r || !r.conducted) return 100;
-                    return (r.attended / r.conducted) * 100;
+                    const effective = (r.attended || 0) + (r.od || 0) + (r.ml || 0);
+                    return (effective / r.conducted) * 100;
                 };
 
                 const getSubjectZone = (subj) => {
                     const p = getSubjectPercentage(subj);
-                    if (p >= 90) return 'Safe';
-                    if (p >= 75) return 'Warning';
-                    return 'Danger';
+                    if (p >= 90) return 'Safe (≥90%)';
+                    if (p >= 75) return 'Eligible (≥75%)';
+                    return 'Danger (<75%)';
                 };
 
                 const getSubjectBadgeClass = (subj) => {
                     const p = getSubjectPercentage(subj);
-                    if (p >= 90) return 'bg-emerald-100 text-emerald-700';
-                    if (p >= 75) return 'bg-amber-100 text-amber-700';
-                    return 'bg-rose-100 text-rose-700';
+                    if (p >= 90) return 'bg-emerald-100 text-emerald-800';
+                    if (p >= 75) return 'bg-amber-100 text-amber-800';
+                    return 'bg-rose-100 text-rose-800';
                 };
 
                 const getSubjectColorClass = (subj) => {
@@ -844,38 +978,42 @@
 
                 const getSubjTargetNeeded = (subj, targetP) => {
                     const r = attendanceRecords.value[subj.code];
-                    if (!r) return 0;
-                    const { attended, conducted } = r;
+                    if (!r || !r.conducted) return 'Target Met';
+                    const effective = (r.attended || 0) + (r.od || 0) + (r.ml || 0);
                     const targetDec = targetP / 100;
-                    const req = Math.ceil((targetDec * conducted - attended) / (1 - targetDec));
+                    const req = Math.ceil((targetDec * r.conducted - effective) / (1 - targetDec));
                     return req > 0 ? `${req} classes` : 'Target Met';
                 };
 
                 const getSubjMaxBunks = (subj, targetP) => {
                     const r = attendanceRecords.value[subj.code];
-                    if (!r) return 0;
-                    const { attended, conducted } = r;
-                    const allowed = Math.floor((attended - (targetP / 100) * conducted) / (targetP / 100));
+                    if (!r || !r.conducted) return '0 classes';
+                    const effective = (r.attended || 0) + (r.od || 0) + (r.ml || 0);
+                    const targetDec = targetP / 100;
+                    const allowed = Math.floor((effective - targetDec * r.conducted) / targetDec);
                     return allowed > 0 ? `${allowed} classes` : '0 classes';
                 };
 
                 const updateAttendance = (code, field, delta) => {
                     if (!attendanceRecords.value[code]) {
-                        attendanceRecords.value[code] = { attended: 28, conducted: 32 };
+                        attendanceRecords.value[code] = { attended: 28, od: 0, ml: 0, conducted: 32 };
                     }
                     const val = (attendanceRecords.value[code][field] || 0) + delta;
                     if (val >= 0) {
                         attendanceRecords.value[code][field] = val;
-                        validateAttendance(code);
+                        const r = attendanceRecords.value[code];
+                        const eff = r.attended + r.od + r.ml;
+                        if (eff > r.conducted) {
+                            r.conducted = eff;
+                        }
                     }
                 };
 
-                const validateAttendance = (code) => {
-                    const r = attendanceRecords.value[code];
-                    if (!r) return;
-                    if (r.attended > r.conducted) {
-                        r.attended = r.conducted;
-                    }
+                const markAllPresent = () => {
+                    activeSubjects.value.forEach(s => {
+                        updateAttendance(s.code, 'attended', 1);
+                        updateAttendance(s.code, 'conducted', 1);
+                    });
                 };
 
                 const getTimetableCell = (day, periodIndex) => {
@@ -894,7 +1032,6 @@
                     localStorage.setItem('srm_selected_sec', selectedSectionId.value);
                     initAttendanceRecords();
                     nextTick(() => {
-                        if (window.lucide) window.lucide.createIcons();
                         renderChart();
                     });
                 };
@@ -902,9 +1039,14 @@
                 const generateMockData = () => {
                     const newRecs = {};
                     activeSubjects.value.forEach((s, idx) => {
-                        const cond = 30 + (idx * 2);
-                        const att = idx === 0 ? cond - 6 : cond - Math.floor(Math.random() * 4);
-                        newRecs[s.code] = { attended: Math.max(0, att), conducted: cond };
+                        const cond = 32 + (idx * 2);
+                        const att = idx === 0 ? cond - 7 : cond - Math.floor(Math.random() * 4);
+                        newRecs[s.code] = { 
+                            attended: Math.max(0, att), 
+                            od: idx === 1 ? 2 : 0, 
+                            ml: 0, 
+                            conducted: cond 
+                        };
                     });
                     attendanceRecords.value = newRecs;
                 };
@@ -913,7 +1055,74 @@
                     initAttendanceRecords();
                 };
 
-                // Render Chart.js
+                // AI Chatbot Logic
+                const sendMessage = () => {
+                    if (!userInput.value.trim()) return;
+                    
+                    const query = userInput.value;
+                    chatMessages.value.push({ sender: 'user', text: query });
+                    userInput.value = '';
+
+                    // Scroll to bottom
+                    setTimeout(() => {
+                        const el = document.getElementById('chat-messages');
+                        if(el) el.scrollTop = el.scrollHeight;
+                    }, 50);
+
+                    // AI Logic Simulation matching Vue reactive data
+                    setTimeout(() => {
+                        let response = "I'm sorry, I didn't quite catch that. Try asking about a specific duration (e.g., '3 days') or a subject.";
+                        
+                        // Extract days requested
+                        const daysMatch = query.match(/(\d+)[- ]day/i) || query.match(/(\d+)\s+days/i);
+                        // Find if user mentioned any active subject by its first word (e.g., "Chemistry")
+                        const subjectMatch = activeSubjects.value.find(s => 
+                            query.toLowerCase().includes(s.name.split(' ')[0].toLowerCase())
+                        );
+
+                        if (daysMatch) {
+                            const days = parseInt(daysMatch[1]);
+                            
+                            if (subjectMatch) {
+                                // Calculate isolated subject drop
+                                const subjCode = subjectMatch.code;
+                                const rec = attendanceRecords.value[subjCode];
+                                const effPresent = (rec.attended || 0) + (rec.od || 0) + (rec.ml || 0);
+                                
+                                // Assume 1 class missed per day for this specific subject
+                                const subjMissed = days * 1; 
+                                const newConducted = (rec.conducted || 0) + subjMissed;
+                                const newPercentage = newConducted > 0 ? (effPresent / newConducted) * 100 : 0;
+                                
+                                if (newPercentage < 75) {
+                                    response = `🚨 Warning: Missing ${days} days means you'll miss roughly ${subjMissed} ${subjectMatch.name} classes. Your attendance will drop to ${newPercentage.toFixed(1)}%, putting you in the Danger Zone (<75%).`;
+                                } else {
+                                    response = `✅ You are safe. If you miss ${days} days, your ${subjectMatch.name} attendance will drop to ${newPercentage.toFixed(1)}%, which remains above the 75% requirement.`;
+                                }
+                            } else {
+                                // Calculate global overall attendance drop
+                                const estimatedClassesMissed = days * 5; // Assumes ~5 periods daily average
+                                const { attended, od, ml, conducted } = overallStats.value;
+                                const effPresent = attended + od + ml;
+                                
+                                const newConducted = conducted + estimatedClassesMissed;
+                                const newPercentage = newConducted > 0 ? (effPresent / newConducted) * 100 : 0;
+                                
+                                response = `If you take a ${days}-day leave, you'll miss roughly ${estimatedClassesMissed} classes total across all subjects. Your overall attendance will drop from ${overallStats.value.percentage.toFixed(1)}% to ${newPercentage.toFixed(1)}%.`;
+                            }
+                        }
+                        
+                        chatMessages.value.push({ sender: 'bot', text: response });
+                        
+                        setTimeout(() => {
+                            const el = document.getElementById('chat-messages');
+                            if(el) el.scrollTop = el.scrollHeight;
+                        }, 50);
+
+                    }, 500);
+                };
+
+                // Chart Rendering
                 const renderChart = () => {
                     const ctx = document.getElementById('attendanceChart');
                     if (!ctx) return;
@@ -929,10 +1138,10 @@
                     chartInstance = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['Safe (>=90%)', 'Warning (75-89%)', 'Danger (<75%)'],
+                            labels: ['Safe (≥90%)', 'Eligible (75-89%)', 'Danger (<75%)'],
                             datasets: [{
                                 data: [safe, warning, danger],
-                                backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                                backgroundColor: ['#059669', '#D97706', '#E11D48'],
                                 borderWidth: 0
                             }]
                         },
@@ -945,22 +1154,27 @@
                                     labels: { font: { size: 11, family: 'Inter' } }
                                 }
                             },
-                            cutout: '70%'
+                            cutout: '72%'
                         }
                     });
                 };
 
-                // Immediate watcher on section selection
+                // Lifecycle & Watchers
+                onMounted(() => {
+                    initAttendanceRecords();
+                    nextTick(() => {
+                        renderChart();
+                    });
+                });
+
                 watch(selectedSectionId, (newSecId) => {
                     localStorage.setItem('srm_selected_sec', newSecId);
                     initAttendanceRecords();
                     nextTick(() => {
-                        if (window.lucide) window.lucide.createIcons();
                         renderChart();
                     });
-                }, { immediate: true });
+                });
 
-                // Watchers for persistence and dynamic updates
                 watch(attendanceRecords, (newVal) => {
                     localStorage.setItem(`srm_att_${selectedSectionId.value}`, JSON.stringify(newVal));
                     renderChart();
@@ -968,7 +1182,6 @@
 
                 watch(activeTab, () => {
                     nextTick(() => {
-                        if (window.lucide) window.lucide.createIcons();
                         renderChart();
                     });
                 });
@@ -1000,15 +1213,19 @@
                     getSubjTargetNeeded,
                     getSubjMaxBunks,
                     getAttended,
-                    setAttended,
+                    getOD,
+                    getML,
                     getConducted,
-                    setConducted,
                     updateAttendance,
-                    validateAttendance,
+                    markAllPresent,
                     getTimetableCell,
                     onSectionChange,
                     generateMockData,
-                    resetData
+                    resetData,
+                    isChatOpen,
+                    userInput,
+                    chatMessages,
+                    sendMessage
                 };
             }
         }).mount('#app');
