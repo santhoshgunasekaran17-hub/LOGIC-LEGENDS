@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart-Search Floor Manager</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #15803d;
+            --success-bg: #dcfce7;
+            --danger: #b91c1c;
+            --danger-bg: #fee2e2;
+            --border: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; line-height: 1.5; }
+
+        .app-container { max-width: 1100px; margin: 0 auto; }
+
+        /* Header & Smart Search */
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem; }
+        header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .search-box-container {
+            background: var(--card-bg); padding: 1.25rem; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            margin-bottom: 1.5rem; border: 1px solid var(--border);
+        }
+
+        .ai-input-wrapper { position: relative; }
+        .ai-input {
+            width: 100%; padding: 0.9rem 1rem 0.9rem 2.8rem; font-size: 1rem;
+            border: 2px solid var(--border); border-radius: 8px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .ai-input:focus { border-color: var(--primary-light); }
+        .search-icon { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--text-muted); }
+
+        .search-hints { margin-top: 0.5rem; font-size: 0.82rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .hint-tag { background: #e2e8f0; padding: 0.1rem 0.5rem; border-radius: 4px; cursor: pointer; }
+        .hint-tag:hover { background: #cbd5e1; }
+
+        /* Controls Panel */
+        .controls-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
+            background: var(--card-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .control-group label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        .control-group select { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.95rem; }
+
+        /* Floor Grid Layout */
+        .floor-block { margin-bottom: 2rem; }
+        .floor-header {
+            font-size: 1.2rem; font-weight: 700; color: var(--primary);
+            padding-bottom: 0.4rem; border-bottom: 2px solid var(--primary-light); margin-bottom: 1rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+
+        /* Room Cards */
+        .room-card {
+            background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
+            padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 0.6rem;
+            position: relative; overflow: hidden;
+        }
+        .room-card.is-empty { border-left: 5px solid var(--success); }
+        .room-card.is-occupied { border-left: 5px solid var(--danger); }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; }
+        .room-title { font-size: 1.15rem; font-weight: 700; }
+        .status-badge {
+            font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 12px; text-transform: uppercase;
+        }
+        .status-badge.empty { background: var(--success-bg); color: var(--success); }
+        .status-badge.occupied { background: var(--danger-bg); color: var(--danger); }
+
+        .room-info { font-size: 0.88rem; color: var(--text-muted); }
+        .room-info strong { color: var(--text-main); }
+        .amenities { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
+        .chip { font-size: 0.72rem; background: #f1f5f9; border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 4px; }
+
+        /* NLP Result Banner */
+        .ai-banner {
+            background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+            padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>🏢 Smart-Search Floor Manager</h1>
+        <p>SRM FET Timetable Engine & Real-Time Classroom Availability Finder</p>
+    </header>
+
+    <div class="search-box-container">
+        <div class="ai-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="aiQuery" class="ai-input" placeholder="e.g. 'I need an AC room on 2nd floor on Monday Period 3' or 'empty rooms on 5th floor'" onkeyup="handleSearch(event)">
+        </div>
+        <div class="search-hints">
+            <span>Try searching:</span>
+            <span class="hint-tag" onclick="applyHint('Empty rooms on 2nd floor')">"Empty rooms on 2nd floor"</span>
+            <span class="hint-tag" onclick="applyHint('Need AC room on 5th floor')">"Need AC room on 5th floor"</span>
+            <span class="hint-tag" onclick="applyHint('Available rooms on Friday Period 6')">"Available rooms on Friday Period 6"</span>
+            <span class="hint-tag" onclick="applyHint('Show IST 225')">"Show IST 225"</span>
+        </div>
+    </div>
+
+    <div id="aiBanner" class="ai-banner"></div>
+
+    <div class="controls-grid">
+        <div class="control-group">
+            <label for="daySelect">Select Day</label>
+            <select id="daySelect" onchange="manualFilterChange()">
+                <option value="Mon">Monday</option>
+                <option value="Tue">Tuesday</option>
+                <option value="Wed">Wednesday</option>
+                <option value="Thu">Thursday</option>
+                <option value="Fri">Friday</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="periodSelect">Select Period / Time</label>
+            <select id="periodSelect" onchange="manualFilterChange()">
+                <option value="1">Period 1 (09:00 - 09:50 AM)</option>
+                <option value="2">Period 2 (09:50 - 10:40 AM)</option>
+                <option value="3">Period 3 (10:50 - 11:40 AM)</option>
+                <option value="4">Period 4 (11:40 - 12:30 PM)</option>
+                <option value="5">Period 5 (12:30 - 01:20 PM)</option>
+                <option value="6" selected>Period 6 (01:20 - 02:10 PM)</option>
+                <option value="7">Period 7 (02:10 - 03:00 PM)</option>
+                <option value="8">Period 8 (03:10 - 04:00 PM)</option>
+                <option value="9">Period 9 (04:00 - 04:50 PM)</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="floorSelect">Filter Floor</label>
+            <select id="floorSelect" onchange="manualFilterChange()">
+                <option value="all">All Floors</option>
+                <option value="2">2nd Floor</option>
+                <option value="4">4th Floor</option>
+                <option value="5">5th Floor</option>
+                <option value="6">6th Floor</option>
+                <option value="7">7th Floor</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="statusSelect">Availability</label>
+            <select id="statusSelect" onchange="manualFilterChange()">
+                <option value="all">All Rooms</option>
+                <option value="empty">Empty Only</option>
+                <option value="occupied">Occupied Only</option>
+            </select>
+        </div>
+    </div>
+
+    <main id="floorGridContainer"></main>
+</div>
+
+<script>
+/**
+ * Master Schedule Database extracted directly from the 10 Provided PDF Timetables
+ */
+const roomMaster = [
+    {
+        id: "IST 211",
+        floor: 2,
+        capacity: 60,
+        ac: true,
+        homeSection: "III BME",
+        // Schedule maps: key = Day, values = array of occupied periods (1-indexed) in home room IST 211
+        // Note: When students attend labs in external venues (MPMC LAB, G-625, BIO DSP LAB), IST 211 is physically EMPTY.
+        schedule: {
+            Mon: [6, 7, 8, 9], // P1,P2 in G-625; P3,P4 in MPMC LAB-107
+            Tue: [6, 7, 8, 9], // P1,P2 in BIO DSP LAB-108; P3,P4 in G-625
+            Wed: [6, 7, 8, 9],
+            Thu: [6, 7, 8, 9], // P3,P4 in I-108
+            Fri: [6, 7, 8, 9]  // P1,P2 in I-108
+        },
+        currentSubject: {
+            Mon: {6:"Modern Wireless Comm (E)", 7:"Microcontrollers (B)", 8:"Biometrics (F)", 9:"Indian Art Form (H)"},
+            Tue: {6:"Biomedical Signal Proc (C)", 7:"Biometrics (D)", 8:"Probability & Stats (A)", 9:"Microcontrollers (B)"},
+            Wed: {6:"Biomedical Signal Proc (C)", 7:"Probability & Stats (A)", 8:"Biometrics (F)", 9:"Biometrics (D)"},
+            Thu: {6:"Probability & Stats (A)", 7:"Biomedical Signal Proc (C)", 8:"Modern Wireless Comm (E)", 9:"Microcontrollers (B)"},
+            Fri: {6:"Biometrics (F)", 7:"Probability & Stats (A)", 8:"Biometrics (D)", 9:"Modern Wireless Comm (E)"}
+        }
+    },
+    {
+        id: "IST 225",
+        floor: 2,
+        capacity: 65,
+        ac: true,
+        homeSection: "IV ECE A",
+        schedule: {
+            Mon: [1, 2, 3, 4],
+            Tue: [1, 3, 4], // P2 is in IST 108 Lab
+            Wed: [1, 3, 4], // P2 is IST 108
+            Thu: [1, 2, 3, 4],
+            Fri: [1, 2, 3, 4]
+        },
+        currentSubject: {
+            Mon: {1:"Comp Comm (C)", 2:"Semiconductor Memory (D)", 3:"Psychology (A)", 4:"Semiconductor Memory (D)"},
+            Tue: {1:"Comp Comm (C)", 3:"Wireless Comm (B)", 4:"Machine Learning (F)"},
+            Wed: {1:"Wireless Comm (B)", 3:"Scripting Lang (E)", 4:"Machine Learning (F)"},
+            Thu: {1:"Machine Learning (F)", 2:"Psychology (A)", 3:"Scripting Lang (E)", 4:"Wireless Comm (B)"},
+            Fri: {1:"Comp Comm (C)", 2:"Psychology (A)", 3:"Semiconductor Memory (D)", 4:"Scripting Lang (E)"}
+        }
+    },
+    {
+        id: "IST 227",
+        floor: 2,
+        capacity: 65,
+        ac: true,
+        homeSection: "IV ECE B",
+        schedule: {
+            Mon: [1, 2, 3, 4],
+            Tue: [1, 2, 3, 4],
+            Wed: [1, 2, 3, 4],
+            Thu: [1, 2, 4], // P3 is in IST 108 Lab
+            Fri: [1, 2, 3]
+        },
+        currentSubject: {
+            Mon: {1:"Comp Comm (C)", 2:"Psychology (A)", 3:"Scripting Lang (E)", 4:"Machine Learning (F)"},
+            Tue: {1:"Comp Comm (C)", 2:"Scripting Lang (E)", 3:"Machine Learning (F)", 4:"Wireless Comm (B)"},
+            Wed: {1:"Comp Comm (C)", 2:"Semiconductor Memory (D)", 3:"Psychology (A)", 4:"Wireless Comm (B)"},
+            Thu: {1:"Semiconductor Memory (D)", 2:"Wireless Comm (B)", 4:"Psychology (A)"},
+            Fri: {1:"Scripting Lang (E)", 2:"Semiconductor Memory (D)", 3:"Machine Learning (F)"}
+        }
+    },
+    {
+        id: "IST 411",
+        floor: 4,
+        capacity: 60,
+        ac: false,
+        homeSection: "II ECE DS B",
+        schedule: {
+            Mon: [6, 7, 8, 9], // P3,P4 in LAB-309/107
+            Tue: [6, 7, 8, 9], // P1,P2 in LAB-309/107
+            Wed: [6, 7, 8, 9], // P1,P2 in G-401
+            Thu: [6, 7, 8, 9], // P1,P2 in G-401; P3,P4 in H-TB-106
+            Fri: [6, 7, 8, 9]  // P1,P2 in H-TB-106
+        },
+        currentSubject: {
+            Mon: {6:"Digital Logic (D)", 7:"Solid State Dev (B)", 8:"Comp Org (C)", 9:"Social Engg (I)"},
+            Tue: {6:"Comp Org (C)", 7:"Digital Logic (D)", 8:"E&M Theory (E)", 9:"Transforms (A)"},
+            Wed: {6:"Social Engg (I)", 7:"E&M Theory (E)", 8:"Transforms (A)", 9:"Digital Logic (D)"},
+            Thu: {6:"Transforms (A)", 7:"Comp Org (C)", 8:"Solid State Dev (B)", 9:"E&M Theory (E)"},
+            Fri: {6:"Prof Ethics (F)", 7:"Transforms (A)", 8:"Solid State Dev (B)", 9:"Comp Org (C)"}
+        }
+    },
+    {
+        id: "IST 416",
+        floor: 4,
+        capacity: 60,
+        ac: false,
+        homeSection: "II ECE DS A",
+        schedule: {
+            Mon: [1, 2, 3], // P6,P7 in G-602; P8,P9 in LAB-309/107
+            Tue: [1, 2, 3, 4], // P6,P7 in G-602; P8,P9 in H-TB-106
+            Wed: [1, 2, 3, 4], // P6,P7 in H-TB-106
+            Thu: [1, 2, 3, 4], // P6,P7 in LAB-309/107
+            Fri: [1, 2, 3, 4]
+        },
+        currentSubject: {
+            Mon: {1:"E&M Theory (E)", 2:"Transforms (A)", 3:"Social Engg (I)"},
+            Tue: {1:"Comp Org (C)", 2:"Transforms (A)", 3:"E&M Theory (E)", 4:"Digital Logic (D)"},
+            Wed: {1:"Transforms (A)", 2:"Solid State Dev (B)", 3:"Comp Org (C)", 4:"Digital Logic (D)"},
+            Thu: {1:"Solid State Dev (B)", 2:"Comp Org (C)", 3:"Transforms (A)", 4:"Prof Ethics (F)"},
+            Fri: {1:"Digital Logic (D)", 2:"Solid State Dev (B)", 3:"E&M Theory (E)", 4:"Comp Org (C)"}
+        }
+    },
+    {
+        id: "IST 502",
+        floor: 5,
+        capacity: 60,
+        ac: true,
+        homeSection: "I ECE DS",
+        schedule: {
+            Mon: [5, 6, 7, 8],
+            Tue: [5, 6, 7, 8],
+            Wed: [2, 3, 5, 6, 7, 8],
+            Thu: [5, 8, 9],
+            Fri: [] // Classes conducted in German/Workshop
+        },
+        currentSubject: {
+            Mon: {5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Chemistry (B)", 8:"Calculus (A)"},
+            Tue: {5:"Biology (C)", 6:"Chemistry (B)", 7:"Calculus (A)", 8:"Programming (D)"},
+            Wed: {2:"Calculus (A)", 3:"Biology (F)", 5:"Chemistry (B)", 6:"Philosophy of Engg (E)", 7:"Programming (D)"},
+            Thu: {5:"German", 8:"Biology (C)", 9:"Chemistry (B)"}
+        }
+    },
+    {
+        id: "IST 518",
+        floor: 5,
+        capacity: 70,
+        ac: true,
+        homeSection: "III ECE A (FN) / III ECE B (AN)",
+        schedule: {
+            Mon: [1, 2, 3, 4, 6, 7, 8, 9], // P6,P7 FN in G-625; AN occupies P6-P9
+            Tue: [1, 2, 3, 4, 6, 7, 8, 9],
+            Wed: [1, 2, 3, 4, 6, 7, 8, 9],
+            Thu: [1, 2, 3, 4, 6, 7, 8, 9],
+            Fri: [1, 2, 3, 4, 6, 7, 8, 9]
+        },
+        currentSubject: {
+            Mon: {1:"Discrete Math", 2:"Microprocessors", 3:"Microprocessors", 4:"Discrete Math", 6:"System & Net", 7:"Microprocessors", 8:"Discrete Math", 9:"Machine Learning"},
+            Tue: {1:"Indian Art Form", 2:"Machine Learning", 3:"Microprocessors", 4:"B-Proj", 6:"Community Connect", 7:"Microprocessors", 8:"Machine Learning", 9:"VLSI Design"},
+            Wed: {1:"VLSI Design", 2:"Discrete Math", 3:"Machine Learning", 4:"Community Connect", 6:"B-Proj", 7:"Microprocessors", 8:"Discrete Math", 9:"Indian Art Form"},
+            Thu: {1:"Discrete Math", 2:"System & Net", 3:"VLSI Design", 4:"Community Connect", 6:"Discrete Math", 7:"VLSI Design", 8:"System & Net", 9:"Community Connect"},
+            Fri: {1:"Machine Learning", 2:"Discrete Math", 3:"System & Net", 4:"VLSI Design", 6:"VLSI Design", 7:"Discrete Math", 8:"System & Net", 9:"Machine Learning"}
+        }
+    },
+    {
+        id: "IST 519",
+        floor: 5,
+        capacity: 65,
+        ac: true,
+        homeSection: "III ECE DS",
+        schedule: {
+            Mon: [1, 2, 3, 4], // P5,P6 in LAB-108/107; P7 in G-625
+            Tue: [],           // All classes in LAB-309/107 or G-401
+            Wed: [],           // All classes in G-625 or CDC
+            Thu: [1, 2, 3, 4],
+            Fri: [1, 2, 3, 4]  // P5 in G-625; P6,P7 in LAB-108/107
+        },
+        currentSubject: {
+            Mon: {1:"Database Design (E)", 2:"Microprocessor (B)", 3:"VLSI Design (C)", 4:"Discrete Math (A)"},
+            Thu: {1:"Discrete Math (A)", 2:"Machine Learning (D)", 3:"Database Design (E)", 4:"Community Connect (F)"},
+            Fri: {1:"Machine Learning (D)", 2:"Discrete Math (A)", 3:"Database Design (E)", 4:"Microprocessor (B)"}
+        }
+    },
+    {
+        id: "IST 602",
+        floor: 6,
+        capacity: 70,
+        ac: false,
+        homeSection: "II BME / I ECE A / I ECE B",
+        schedule: {
+            Mon: [1, 2, 3, 4, 5, 6, 7, 8],
+            Tue: [1, 2, 3, 4, 5, 6, 7, 8],
+            Wed: [1, 2, 3, 5, 6, 7, 8],
+            Thu: [1, 2, 3, 4, 7, 8],
+            Fri: [1, 2, 3, 4, 6, 8, 9]
+        },
+        currentSubject: {
+            Mon: {1:"Philosophy of Engg (E)", 2:"Philosophy of Engg (E)", 3:"Chemistry (B)", 4:"Calculus (A)", 5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Chemistry (B)", 8:"Calculus (A)"},
+            Tue: {1:"Biology (C)", 2:"Chemistry (B)", 3:"Calculus (A)", 4:"Programming (D)", 5:"Biology (C)", 6:"Chemistry (B)", 7:"Calculus (A)", 8:"Programming (D)"},
+            Wed: {1:"Chemistry (B)", 2:"Philosophy of Engg (E)", 3:"Programming (D)", 5:"Programming (D)", 6:"Chemistry (B)", 7:"Calculus (A)", 8:"Philosophy of Engg (E)"},
+            Thu: {1:"Medical Physics (A)", 2:"Medical Physics (E)", 3:"Electric Circuits (B)", 4:"Digital Logic (D)", 7:"Calculus (A)", 8:"German"},
+            Fri: {1:"Digital Logic (D)", 2:"Calculus (A)", 3:"Biology (C)", 4:"Chemistry (B)", 6:"Philosophy of Engg (F)", 8:"Chemistry (B)", 9:"Calculus (A)"}
+        }
+    },
+    {
+        id: "IST 702",
+        floor: 7,
+        capacity: 60,
+        ac: false,
+        homeSection: "I Biotech B & BME",
+        schedule: {
+            Mon: [5, 6, 7, 8],
+            Tue: [6, 7, 8],
+            Wed: [5, 6, 7, 8],
+            Thu: [5, 6, 8],
+            Fri: [1, 2, 3, 4, 5]
+        },
+        currentSubject: {
+            Mon: {5:"Philosophy of Engg (E)", 6:"Philosophy of Engg (E)", 7:"Calculus (A)", 8:"Chemistry (B)"},
+            Tue: {6:"Chemistry (B)", 7:"Calculus (A)", 8:"Programming (D)"},
+            Wed: {5:"Programming (D)", 6:"Chemistry (B)", 7:"Philosophy of Engg (E)", 8:"Programming (D)"},
+            Thu: {5:"Chemistry (B)", 6:"Calculus (A)", 8:"Japanese"},
+            Fri: {1:"Biochemistry (F)", 2:"CDC", 3:"Calculus (A)", 4:"Japanese", 5:"Japanese"}
+        }
+    }
+];
+
+// Active State
+let state = {
+    day: "Mon",
+    period: 6,
+    floor: "all",
+    status: "all",
+    aiMessage: ""
+};
+
+// Primary Render Engine
+function render() {
+    const container = document.getElementById('floorGridContainer');
+    container.innerHTML = '';
+
+    // Filter Rooms
+    let filtered = roomMaster.filter(room => {
+        // Floor Filter
+        if (state.floor !== "all" && room.floor !== parseInt(state.floor)) return false;
+
+        // Dynamic Occupancy Status Calculation
+        const isOccupied = room.schedule[state.day] && room.schedule[state.day].includes(state.period);
+        const roomStatus = isOccupied ? "occupied" : "empty";
+
+        // Status Filter
+        if (state.status !== "all" && state.status !== roomStatus) return false;
+
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">
+            <h3>No rooms match your specific criteria.</h3>
+            <p>Try clearing your search query or selecting 'All Floors'.</p>
+        </div>`;
+        return;
+    }
+
+    // Group Rooms by Floor
+    const floors = [...new Set(filtered.map(r => r.floor))].sort((a,b) => a - b);
+
+    floors.forEach(floor => {
+        const floorBlock = document.createElement('div');
+        floorBlock.className = 'floor-block';
+
+        const floorRooms = filtered.filter(r => r.floor === floor);
+        const emptyCount = floorRooms.filter(r => !r.schedule[state.day].includes(state.period)).length;
+
+        floorBlock.innerHTML = `
+            <div class="floor-header">
+                <span>Floor ${floor}</span>
+                <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">
+                    ${emptyCount} of ${floorRooms.length} room(s) available now
+                </span>
+            </div>
+            <div class="room-grid" id="floor-grid-${floor}"></div>
+        `;
+
+        container.appendChild(floorBlock);
+
+        const grid = document.getElementById(`floor-grid-${floor}`);
+        floorRooms.forEach(room => {
+            const isOccupied = room.schedule[state.day] && room.schedule[state.day].includes(state.period);
+            const statusClass = isOccupied ? 'is-occupied' : 'is-empty';
+            const badgeClass = isOccupied ? 'occupied' : 'empty';
+            const statusText = isOccupied ? 'Occupied' : 'Empty / Available';
+
+            const currentSubject = isOccupied && room.currentSubject[state.day] && room.currentSubject[state.day][state.period] 
+                ? room.currentSubject[state.day][state.period] 
+                : "No Scheduled Class";
+
+            grid.innerHTML += `
+                <div class="room-card ${statusClass}">
+                    <div class="card-top">
+                        <span class="room-title">${room.id}</span>
+                        <span class="status-badge ${badgeClass}">${statusText}</span>
+                    </div>
+                    <div class="room-info">
+                        <div><strong>Home Class:</strong> ${room.homeSection}</div>
+                        <div><strong>Status @ Period ${state.period}:</strong> ${currentSubject}</div>
+                        <div><strong>Capacity:</strong> ~${room.capacity} seats</div>
+                    </div>
+                    <div class="amenities">
+                        <span class="chip">${room.ac ? '❄️ AC' : '🌀 Non-AC'}</span>
+                        <span class="chip">📍 Floor ${room.floor}</span>
+                    </div>
+                </div>
+            `;
+        });
+    });
+}
+
+// User Action Handlers
+function manualFilterChange() {
+    state.day = document.getElementById('daySelect').value;
+    state.period = parseInt(document.getElementById('periodSelect').value);
+    state.floor = document.getElementById('floorSelect').value;
+    state.status = document.getElementById('statusSelect').value;
+    hideBanner();
+    render();
+}
+
+function applyHint(text) {
+    document.getElementById('aiQuery').value = text;
+    processAI(text);
+}
+
+function handleSearch(e) {
+    if (e.key === "Enter" || e.type === "keyup") {
+        processAI(e.target.value);
+    }
+}
+
+// Simulated AI / Natural Language Processing Engine
+function processAI(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        hideBanner();
+        render();
+        return;
+    }
+
+    let parsedDay = state.day;
+    let parsedPeriod = state.period;
+    let parsedFloor = "all";
+    let parsedStatus = "all";
+    let extractedFeatures = [];
+
+    // Extract Day
+    if (q.includes("mon")) parsedDay = "Mon";
+    else if (q.includes("tue")) parsedDay = "Tue";
+    else if (q.includes("wed")) parsedDay = "Wed";
+    else if (q.includes("thu")) parsedDay = "Thu";
+    else if (q.includes("fri")) parsedDay = "Fri";
+
+    // Extract Period
+    const periodMatch = q.match(/period\s*(\d)/) || q.match(/p(\d)/);
+    if (periodMatch) {
+        parsedPeriod = parseInt(periodMatch[1]);
+        extractedFeatures.push(`Period ${parsedPeriod}`);
+    }
+
+    // Extract Floor
+    const floorMatch = q.match(/(\d)(?:st|nd|rd|th)?\s*floor/) || q.match(/floor\s*(\d)/);
+    if (floorMatch) {
+        parsedFloor = floorMatch[1] || floorMatch[2];
+        extractedFeatures.push(`Floor ${parsedFloor}`);
+    }
+
+    // Extract Status
+    if (q.includes("empty") || q.includes("available") || q.includes("free")) {
+        parsedStatus = "empty";
+        extractedFeatures.push("Empty Rooms Only");
+    } else if (q.includes("occupied") || q.includes("busy")) {
+        parsedStatus = "occupied";
+        extractedFeatures.push("Occupied Rooms Only");
+    }
+
+    // Update UI Controls
+    document.getElementById('daySelect').value = parsedDay;
+    document.getElementById('periodSelect').value = parsedPeriod;
+    document.getElementById('floorSelect').value = parsedFloor;
+    document.getElementById('statusSelect').value = parsedStatus;
+
+    // Sync State
+    state.day = parsedDay;
+    state.period = parsedPeriod;
+    state.floor = parsedFloor;
+    state.status = parsedStatus;
+
+    // Display AI Banner Context
+    showBanner(`🤖 <strong>AI Parsed Request:</strong> Day = ${parsedDay}, Period = ${parsedPeriod}, Floor = ${parsedFloor}, Status = ${parsedStatus}`);
+    render();
+}
+
+function showBanner(msg) {
+    const b = document.getElementById('aiBanner');
+    b.innerHTML = msg;
+    b.style.display = 'block';
+}
+
+function hideBanner() {
+    document.getElementById('aiBanner').style.display = 'none';
+}
+
+// Initial Run
+window.onload = () => {
+    render();
+};
+</script>
+</body>
+</html>
